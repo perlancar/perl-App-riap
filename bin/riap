@@ -1,0 +1,120 @@
+#!/usr/bin/perl
+
+use 5.010001;
+use strict;
+use warnings;
+
+# VERSION
+
+use Perinci::AccessShell;
+
+my $shell = Perinci::AccessShell->new;
+$shell->cmdloop;
+
+1;
+# ABSTRACT: Riap client shell
+# PODNAME: riap
+
+=head1 SYNOPSIS
+
+Sample invocations:
+
+ # access the local Perl realm (pl:/)
+ % riap
+
+ # ditto, but specified "chroot"
+ % riap /spanel/api/
+
+ # access remote API endpoints
+ % riap https://cpanlists.org/api/
+ % riap http://gudangapi.com/ga/
+
+An example session:
+
+ riap> pwd
+ /
+
+ riap> cd /spanel/api
+
+ riap> ls
+ pl:/spanel/api/account/
+ pl:/spanel/api/disk_usage/
+ pl:/spanel/api/mysql/
+ pl:/spanel/api/pgsql/
+ pl:/spanel/api/plan/
+ ...
+
+ riap> cd account/shared
+
+ riap> ls -l
+ pl:/spanel/api/account/shared/create_account     function
+ pl:/spanel/api/account/shared/delete_accounts    function
+ pl:/spanel/api/account/shared/list_accounts      function
+ pl:/spanel/api/account/shared/suspend_account    function
+ pl:/spanel/api/account/shared/unsuspend_account  function
+
+ # execute a Riap function
+ riap> list_accounts --nodisabled --nomigrated
+ andi
+ budi
+ charlie
+ devi
+ steven
+
+ riap> exit
+
+
+=head1 DESCRIPTION
+
+A command-line shell for L<Perinci::Access>. Commands and details
+might still change in the future.
+
+
+=head1 ENVIRONMENT
+
+=over
+
+=item * RIAP_HISTFILE (str, default: ~/.riap_history)
+
+Like in shells, can be set to empty string to disable history loading/saving.
+
+=back
+
+
+=head1 FILES
+
+C<~/.riap_history> - history
+
+
+=head1 COMMANDS
+
+=head2 help
+
+=head2 exit
+
+=head2 pwd
+
+=head2 cd
+
+=head2 list (or ls)
+
+=head2 info
+
+=head2 request
+
+
+=head1 TODO
+
+=over
+
+=item * Configurable prompt
+
+=item * Load configuration from file
+
+=item * RIAP_HISTSIZE
+
+And also probably RIAP_HISTFILESIZE, RIAP_HISTIGNORE, RIAP_HISTTIMEFORMAT.
+
+=back
+
+=cut
