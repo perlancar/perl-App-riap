@@ -6,9 +6,9 @@ use warnings;
 
 # VERSION
 
-use Perinci::AccessShell;
+use App::Riap;
 
-my $shell = Perinci::AccessShell->new;
+my $shell = App::Riap->new;
 $shell->cmdloop;
 
 1;

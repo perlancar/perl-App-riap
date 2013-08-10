@@ -1,4 +1,4 @@
-package Perinci::AccessShell;
+package App::Riap;
 
 use 5.010001;
 use strict;
