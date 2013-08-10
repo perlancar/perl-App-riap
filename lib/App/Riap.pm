@@ -79,7 +79,7 @@ sub _run_cmd {
 
     $self->{_cmdstate} = {};
 
-    local @ARGV = @{ $args{args} };
+    local @ARGV = @{ $args{argv} };
     # convert opts to Getopt::Long specification
     {
         my @getopt;
@@ -124,7 +124,16 @@ sub _run_cmd {
 }
 
 sub _comp_cmd {
-    my $self = shift;
+    my ($self, %args) = @_;
+
+    #use Data::Dump; dd $args{argv};
+    my @argv = @{ $args{argv} };
+    my ($word, $line, $start) = @argv;
+
+    # currently rather simplistic, only complete option name or uri path
+    my @args = $self->line_parsed(substr($line, 0, $start));
+    #use Data::Dump; dd [$word, $line, $start, \@args];
+    ();
 }
 
 $cmdspec{list} = {
@@ -145,12 +154,12 @@ $cmdspec{list} = {
 sub smry_list { "Perform list request on package entity" }
 sub run_list {
     my $self = shift;
-    $self->_run_cmd(%{ $cmdspec{list} }, args=>\@_);
+    $self->_run_cmd(%{ $cmdspec{list} }, argv=>\@_);
 }
 
 sub comp_list {
     my $self = shift;
-    $self->_comp_cmd(%{ $cmdspec{list} }, args=>\@_);
+    $self->_comp_cmd(%{ $cmdspec{list} }, argv=>\@_);
 }
 
 sub alias_list { ("ls") }
