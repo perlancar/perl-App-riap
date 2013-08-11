@@ -6,9 +6,9 @@ use warnings;
 
 # VERSION
 
-use App::Riap;
+use App::riap;
 
-my $shell = App::Riap->new;
+my $shell = App::riap->new;
 $shell->cmdloop;
 
 1;
@@ -66,8 +66,10 @@ An example session:
 
 =head1 DESCRIPTION
 
-A command-line shell for L<Perinci::Access>. Commands and details
-might still change in the future.
+A command-line shell for L<Perinci::Access>. With this tool, you can browse
+entity tree like a filesystem with commands like C<cd> and C<pwd>, with package
+entities treated like a directory and other kinds of entities like files. You
+can execute functions like executable files in the filesystem.
 
 
 =head1 ENVIRONMENT
@@ -81,11 +83,6 @@ Like in shells, can be set to empty string to disable history loading/saving.
 =back
 
 
-=head1 FILES
-
-C<~/.riap_history> - history
-
-
 =head1 COMMANDS
 
 =head2 help
@@ -96,11 +93,41 @@ C<~/.riap_history> - history
 
 =head2 cd
 
-=head2 list (or ls)
+=head2 doc <URI>
 
-=head2 info
+=head2 list (or ls) [-l] [URI]
 
-=head2 request
+Perform C<list> request. If C<URI> is not specified, will list the current
+"directory" (package entity).
+
+Options:
+
+=over
+
+=item * -l
+
+Add C<< detail => 1 >> to Riap request, which will request more details.
+
+=back
+
+=head2 info <URI>
+
+Perform C<info> Riap request on an entity at C<URI>.
+
+=head2 request <ACTION> <URI> <KEY=VAL> ...
+
+Perform Riap request to a package entity at C<URI>. You can specify additional
+request key(s). If you want to pass data structures like an array or hash, you
+can specify C<< KEY:j=VAL >>.
+
+Example:
+
+ riap> call somefunc 'args:j={"name": "Steven Haryanto"}'
+
+
+=head1 FILES
+
+C<~/.riap_history> - history
 
 
 =head1 TODO
@@ -114,6 +141,8 @@ C<~/.riap_history> - history
 =item * RIAP_HISTSIZE
 
 And also probably RIAP_HISTFILESIZE, RIAP_HISTIGNORE, RIAP_HISTTIMEFORMAT.
+
+=item * Something like PATH? [#E]
 
 =back
 
