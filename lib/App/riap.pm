@@ -4,6 +4,7 @@ use 5.010001;
 use strict;
 use warnings;
 use Log::Any '$log';
+use experimental 'smartmatch';
 
 use base qw(Term::Shell);
 use utf8;
@@ -46,18 +47,73 @@ sub save_history {
     }
 }
 
+sub settings {
+    [qw/output_format user password/];
+}
+
 sub new {
+    require Getopt::Long;
     require Perinci::Access;
+    require URI;
 
     my ($class, %args) = @_;
 
     binmode(STDOUT, ":utf8");
+
+    my %opts;
+    my @gospec = (
+        "help" => sub {
+            print <<'EOT';
+Usage:
+  riap --help
+  riap [opts] [URI]
+
+Options:
+  --help        Show this help message
+  --user=S      Supply HTTP authentication user
+  --password=S  Supply HTTP authentication password
+
+Examples:
+  % riap
+  % riap https://cpanlists.org/api/
+
+For more help, see the manpage.
+EOT
+                exit 0;
+        },
+        "user=s"     => \$opts{user},
+        "password=s" => \$opts{password},
+    );
+    my $old_go_opts = Getopt::Long::Configure();
+    Getopt::Long::GetOptions(@gospec);
+    Getopt::Long::Configure($old_go_opts);
+
     my $self = $class->SUPER::new();
     $self->load_history;
 
-    $self->{_state}{pwd}           //= $args{pwd} // "/";
-    $self->{_state}{output_format} //= $args{output_format} // "text";
     $self->{_pa} //= Perinci::Access->new;
+    $self->{_state}{user}          //= $opts{user};
+    $self->{_state}{password}      //= $opts{password};
+
+    # determine starting pwd
+    my $pwd;
+    my $surl = URI->new($ARGV[0] // "pl:/");
+    $surl->scheme('pl') if !$surl->scheme;
+    $self->{_state}{server_url}    //= $surl;
+    my $res = $self->riap_request(info => $surl);
+    die "Can't info $surl: $res->[0] - $res->[1]\n" unless $res->[0] == 200;
+    my $uri = URI->new($res->[2]{uri});
+    if ($res->[2]{type} eq 'package') {
+        $pwd = $uri->path;
+    } else {
+        $pwd = $uri->path;
+        $pwd =~ s!(.+/).+!$1!;
+    }
+    $pwd .= "/" unless $pwd =~ m!/$!;
+    $self->{_state}{pwd}           //= $pwd;
+    $self->{_state}{start_pwd}     //= $pwd;
+
+    $self->{_state}{output_format} //= $args{output_format} // "text";
     $self;
 }
 
@@ -71,6 +127,15 @@ sub prompt_str {
     "riap> ";
 }
 
+sub riap_request {
+    my ($self, $action, $uri, $extra) = @_;
+    my $copts = {
+        user     => $self->{_state}{user},
+        password => $self->{_state}{password},
+    };
+    $self->{_pa}->request($action, $uri, $extra, $copts);
+}
+
 sub _run_cmd {
     require Getopt::Long;
     require Perinci::Result::Format;
@@ -79,10 +144,10 @@ sub _run_cmd {
 
     $self->{_cmdstate} = {};
 
-    local @ARGV = @{ $args{argv} };
+    my @argv = @{ $args{argv} };
     # convert opts to Getopt::Long specification
     {
-        my @getopt;
+        my @gospec;
         for my $ok (keys %{ $args{opts} // {} }) {
             my $ov = $args{opts}{$ok};
 
@@ -102,18 +167,20 @@ sub _run_cmd {
                     $ospec .= "=s";
                 }
             }
-            push @getopt, $ospec;
-            push @getopt, sub {
+            push @gospec, $ospec;
+            push @gospec, sub {
                 $self->{_cmdstate}{opts}{$ok} = $_[1];
             };
         }
-        $log->tracef("Getopt::Long spec: %s", \@getopt);
+        $log->tracef("Getopt::Long spec: %s", \@gospec);
         $self->{_cmdstate}{opts} = {};
-        Getopt::Long::GetOptions(@getopt);
+        my $old_go_opts = Getopt::Long::Configure();
+        my $res = Getopt::Long::GetOptionsFromArray(\@argv, @gospec);
+        Getopt::Long::Configure($old_go_opts);
     }
 
     # call code
-    $args{run}->($self, @ARGV);
+    $args{run}->($self, @argv);
 
     # display result
     if ($self->{_cmdstate}{res}) {
@@ -124,6 +191,8 @@ sub _run_cmd {
 }
 
 sub _comp_cmd {
+    require Perinci::BashComplete;
+
     my ($self, %args) = @_;
 
     #use Data::Dump; dd $args{argv};
@@ -131,13 +200,29 @@ sub _comp_cmd {
     my ($word, $line, $start) = @argv;
 
     # currently rather simplistic, only complete option name or uri path
-    my @args = $self->line_parsed(substr($line, 0, $start));
-    #use Data::Dump; dd [$word, $line, $start, \@args];
+    #my @left = $self->line_parsed(substr($line, 0, $start));
+    #my @right = ...
+    if ($word =~ /^-/) {
+        my @opts;
+        for my $ok (keys %{ $args{opts} }) {
+            my $ov = $args{opts}{$ok};
+            push @opts, length($ok) > 1 ? "--$ok" : "-$ok";
+            for (@{ $ov->{aliases} // [] }) {
+                push @opts, length($_) > 1 ? "--$_" : "-$_";
+            }
+        }
+        return @{ Perinci::BashComplete::complete_array(
+            word=>$word, array=>\@opts) };
+    } else {
+        # complete path
+    }
+
     ();
 }
 
 $cmdspec{list} = {
-    name => 'ls',
+    summary => "Perform list request on package entity",
+    aliases => ['ls'],
     opts => {
         l => {
         },
@@ -145,43 +230,127 @@ $cmdspec{list} = {
     run => sub {
         my $self = shift;
         my $urip = @_ ? $_[0] : $self->{_state}{pwd};
-        $self->{_cmdstate}{res} = $self->{_pa}->request(
+        $self->{_cmdstate}{res} = $self->riap_request(
             list => $urip,
             {detail => $self->{_cmdstate}{opts}{l}},
         );
     },
 };
-sub smry_list { "Perform list request on package entity" }
-sub run_list {
-    my $self = shift;
-    $self->_run_cmd(%{ $cmdspec{list} }, argv=>\@_);
-}
 
-sub comp_list {
-    my $self = shift;
-    $self->_comp_cmd(%{ $cmdspec{list} }, argv=>\@_);
-}
-
-sub alias_list { ("ls") }
-
-$cmdspec{list} = {
-    name => 'ls',
+$cmdspec{pwd} = {
+    summary => "Show current location",
     opts => {
-        l => {
-        },
     },
     run => sub {
         my $self = shift;
-        my $urip = @_ ? $_[0] : $self->{_state}{pwd};
-        $self->{_cmdstate}{res} = $self->{_pa}->request(
-            list => $urip,
-            {detail => $self->{_cmdstate}{opts}{l}},
-        );
+        say $self->{_state}{pwd};
     },
 };
+
+$cmdspec{cd} = {
+    summary => "Change location",
+    opts => {
+    },
+    run => sub {
+        require File::Spec::Unix;
+
+        my $self = shift;
+        my $dir = @_ ? $_[0] : $self->{_state}{start_pwd};
+        my $opwd = $self->{_state}{pwd};
+        my $npwd;
+        if ($dir eq '-') {
+            if (defined $self->{_state}{opwd}) {
+                $npwd = $self->{_state}{opwd};
+            } else {
+                warn "No old pwd set\n";
+                return;
+            }
+        } else {
+            if (File::Spec::Unix->file_name_is_absolute($dir)) {
+                $npwd = $dir;
+            } else {
+                $npwd = File::Spec::Unix->catdir($opwd, $dir);
+            }
+            $npwd = File::Spec::Unix->canonpath($npwd);
+            # canonpath() doesn't cleanup foo/..
+            $npwd =~ s![^/]+/\.\.(?=/|\z)!!g;
+            $npwd .= "/" unless $npwd =~ m!/$!;
+
+            # check if path actually exists
+            my $res = $self->riap_request(info => $npwd);
+        }
+        $log->tracef("Setting npwd=%s, opwd=%s", $npwd, $opwd);
+        $self->{_state}{pwd}  = $npwd;
+        $self->{_state}{opwd} = $opwd;
+    },
+};
+
+$cmdspec{set} = {
+    summary => "List or set settings",
+    opts => {
+    },
+    run => sub {
+        my $self = shift;
+        if (!@_) {
+            $self->{_cmdstate}{res} = [
+                map { {name=>$_, value=>$self->{_state}{$_}} }
+                    @{ $self->settings }
+            ];
+            return;
+        }
+        unless (@_ == 2) {
+            warn "Usage: set <setting> <value>\n";
+        }
+        my $s = $_[0];
+        unless ($s ~~ @{ $self->settings }) {
+            warn "Unknown setting '$s', use 'set' to list known settings\n";
+            return;
+        }
+        $self->{_state}{$s} = $_[1];
+    },
+};
+
+$cmdspec{unset} = {
+    summary => "Unset a setting",
+    opts => {
+    },
+    run => sub {
+        my $self = shift;
+        unless (@_ == 1) {
+            warn "Usage: unset <setting>\n";
+            return;
+        }
+        my $s = $_[0];
+        unless ($s ~~ @{ $self->settings }) {
+            warn "Unknown setting '$s', use 'set' to list current settings\n";
+            return;
+        }
+        delete $self->{_state}{$s};
+    },
+};
+
+# install commands
+{
+    no strict 'refs';
+    for my $cmd (keys %cmdspec) {
+        my $spec = $cmdspec{$cmd};
+        *{"smry_$cmd"} = sub { $spec->{summary} };
+        *{"run_$cmd"} = sub {
+            my $self = shift;
+            $self->_run_cmd(%{ $spec }, argv=>\@_);
+        };
+        *{"comp_$cmd"} = sub {
+            my $self = shift;
+            $self->_comp_cmd(%{ $spec }, argv=>\@_);
+        };
+        if (@{ $spec->{aliases} // []}) {
+            *{"alias_$cmd"} = sub { @{ $spec->{aliases} } };
+        }
+    }
+}
 
 1;
-# ABSTRACT: Implementation for Riap command-line shell
+# ABSTRACT: Implementation for the riap command-line shell
 
 =for Pod::Coverage ^(.+)$
 
@@ -192,7 +361,7 @@ Use the provided L<riap> script.
 
 =head1 DESCRIPTION
 
-This is the backend/implementation for Riap client.
+This is the backend/implementation of the C<riap> script.
 
 
 =head1 SEE ALSO

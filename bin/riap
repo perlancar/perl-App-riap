@@ -17,13 +17,17 @@ $shell->cmdloop;
 
 =head1 SYNOPSIS
 
+ % riap --help
+ % riap [opts] [URI]
+
 Sample invocations:
 
- # access the local Perl realm (pl:/)
+ # URI defaults to 'pl:/', which is the local Perl realm
  % riap
 
- # ditto, but specified "chroot"
- % riap /spanel/api/
+ # ditto, but specify initial "pwd"
+ % riap /Calendar/Indonesia/Holiday/
+ % riap pl:/Calendar/Indonesia/Holiday/
 
  # access remote API endpoints
  % riap https://cpanlists.org/api/
@@ -66,21 +70,53 @@ An example session:
 
 =head1 DESCRIPTION
 
-A command-line shell for L<Perinci::Access>. With this tool, you can browse
-entity tree like a filesystem with commands like C<cd> and C<pwd>, with package
-entities treated like a directory and other kinds of entities like files. You
-can execute functions like executable files in the filesystem.
+A command-line shell for L<Perinci::Access>. A convenient way to explore API
+services which use the L<Riap> protocol, or Perl libraries which have L<Rinci>
+metadata.
 
-
-=head1 ENVIRONMENT
+Example API services that you can test this with:
 
 =over
 
-=item * RIAP_HISTFILE (str, default: ~/.riap_history)
+=item * cpanlists.org at L<https://cpanlists.org/api/>
 
-Like in shells, can be set to empty string to disable history loading/saving.
+=item * gudangdata.org at L<https://gudangdata.org/gd/>
+
+=item * gudangapi.com at L<https://gudangapi.com/ga/>
+
+=item * Any server using the Spanel control panel software
+
+The API daemon listens at the Unix socket at C</var/run/spanel/apid.sock> or at
+C<https://localhost:1010>.
 
 =back
+
+Example Perl libraries you can test this with (you need to install them first):
+L<Text::sprintfn>, L<Git::Bunch>, L<Calendar::Indonesia::Holiday>,
+L<Perinci::Examples>.
+
+With the shell, you can browse the packages and functions as if they were
+directories and files (using commands like C<cd> and C<pwd>). You can execute
+functions as if they were executables.
+
+
+=head1 OPTIONS
+
+=over
+
+=item * --help
+
+Show short help message.
+
+=item * --user=S
+
+Supply HTTP authentication user. You can also set this via environment
+L<PERINCI_HTTP_USER> (see L<Perinci::Access> for more details).
+
+=item * --password=S
+
+Supply HTTP authentication password. You can also set this via environment
+L<PERINCI_HTTP_PASSWORD> (see L<Perinci::Access> for more details).
 
 
 =head1 COMMANDS
@@ -125,6 +161,17 @@ Example:
  riap> call somefunc 'args:j={"name": "Steven Haryanto"}'
 
 
+=head1 ENVIRONMENT
+
+=over
+
+=item * RIAP_HISTFILE (str, default: ~/.riap_history)
+
+Like in shells, can be set to empty string to disable history loading/saving.
+
+=back
+
+
 =head1 FILES
 
 C<~/.riap_history> - history
@@ -137,6 +184,8 @@ C<~/.riap_history> - history
 =item * Configurable prompt
 
 =item * Load configuration from file
+
+Especially for HTTP authentication.
 
 =item * RIAP_HISTSIZE
 
