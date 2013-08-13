@@ -100,15 +100,10 @@ EOT
     my $surl = URI->new($ARGV[0] // "pl:/");
     $surl->scheme('pl') if !$surl->scheme;
     $self->{_state}{server_url}    //= $surl;
-    my $res = $self->riap_request(info => $surl);
-    die "Can't info $surl: $res->[0] - $res->[1]\n" unless $res->[0] == 200;
-    my $uri = URI->new($res->[2]{uri});
-    if ($res->[2]{type} eq 'package') {
-        $pwd = $uri->path;
-    } else {
-        $pwd = $uri->path;
-        $pwd =~ s!(.+/).+!$1!;
-    }
+    my $res = $self->{_pa}->parse_url($surl);
+    die "Can't parse url $surl\n" unless $res;
+    $pwd = $res->{path};
+    $pwd = "/$pwd" unless $pwd =~ m!^/!;
     $pwd .= "/" unless $pwd =~ m!/$!;
     $self->{_state}{pwd}           //= $pwd;
     $self->{_state}{start_pwd}     //= $pwd;
