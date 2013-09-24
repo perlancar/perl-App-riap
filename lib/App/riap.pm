@@ -6,7 +6,7 @@ use warnings;
 use Log::Any '$log';
 use experimental 'smartmatch';
 
-use base qw(Term::Shell);
+use parent qw(Term::Shell);
 use utf8;
 
 our %cmdspec;
