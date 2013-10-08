@@ -18,18 +18,18 @@ $shell->cmdloop;
 =head1 SYNOPSIS
 
  % riap --help
- % riap [opts] [URI]
+ % riap [opts] <uri>
 
-Sample invocations:
+Invoking:
 
  # URI defaults to 'pl:/', which is the local Perl realm
  % riap
 
  # ditto, but specify initial "pwd"
- % riap /Calendar/Indonesia/Holiday/
- % riap pl:/Calendar/Indonesia/Holiday/
+ % riap /Calendar/Indonesia/Holiday
+ % riap pl:/Calendar/Indonesia/Holiday
 
- # access remote API endpoints
+ # access remote API starting point
  % riap https://cpanlists.org/api/
  % riap http://gudangapi.com/ga/
 
@@ -41,23 +41,25 @@ An example session:
  riap> cd /spanel/api
 
  riap> ls
- pl:/spanel/api/account/
- pl:/spanel/api/disk_usage/
- pl:/spanel/api/mysql/
- pl:/spanel/api/pgsql/
- pl:/spanel/api/plan/
+ account/
+ disk_usage/
+ mysql/
+ pgsql/
+ plan/
  ...
 
  riap> cd account/shared
 
- riap> ls -l
- pl:/spanel/api/account/shared/create_account     function
- pl:/spanel/api/account/shared/delete_accounts    function
- pl:/spanel/api/account/shared/list_accounts      function
- pl:/spanel/api/account/shared/suspend_account    function
- pl:/spanel/api/account/shared/unsuspend_account  function
+ riap> pwd
+ /spanel/api/account/shared/modify
 
- # execute a Riap function
+ riap> ls -l
+ create_account     function
+ delete_accounts    function
+ suspend_account    function
+ unsuspend_account  function
+
+ # execute a Riap function like it is an executable program
  riap> list_accounts --nodisabled --nomigrated
  andi
  budi
@@ -65,16 +67,20 @@ An example session:
  devi
  steven
 
+ riap> ./delete_account --help
+
  riap> exit
 
 
 =head1 DESCRIPTION
 
-A command-line shell for L<Perinci::Access>. A convenient way to explore API
-services which use the L<Riap> protocol, or Perl libraries which have L<Rinci>
-metadata.
+A Riap client in the form of a simple interactive command-line shell (as opposed
+to L<Perinci::Access> which is a Perl library, or L<peri-run> and L<peri-access>
+which are non-interactive command-line interface). Provides a convenient way to
+explore API services which use the L<Riap> protocol or explore Perl modules
+which have L<Rinci> metadata.
 
-Example API services that you can test this with:
+Example API services that you can (or will be able to) test this with:
 
 =over
 
@@ -87,17 +93,21 @@ Example API services that you can test this with:
 =item * Any server using the Spanel control panel software
 
 The API daemon listens at the Unix socket at C</var/run/spanel/apid.sock> or at
-C<https://localhost:1010>.
+TCP C<https://localhost:1010>.
 
 =back
 
 Example Perl libraries you can test this with (you need to install them first):
 L<Text::sprintfn>, L<Git::Bunch>, L<Calendar::Indonesia::Holiday>,
-L<Perinci::Examples>.
+L<Perinci::Examples>. Try to search for CPAN distributions which specify
+L<Rinci> as their prerequisites.
 
-With the shell, you can browse the packages and functions as if they were
-directories and files (using commands like C<cd> and C<pwd>). You can execute
-functions as if they were executables.
+Within the shell, you can browse packages and functions as if they were
+directories and executable files (using commands like C<cd>, C<ls>, C<pwd>). You
+can call functions like they were command-line programs, by passing command-line
+parameters for function arguments.
+
+See L</"COMMANDS"> for list of known commands.
 
 
 =head1 OPTIONS
@@ -111,54 +121,170 @@ Show short help message.
 =item * --user=S
 
 Supply HTTP authentication user. You can also set this via environment
-L<PERINCI_HTTP_USER> (see L<Perinci::Access> for more details).
+L<PERINCI_HTTP_USER> (see L<Perinci::Access> for more details) or from inside
+the shell via C<< set user <S> >>.
 
 =item * --password=S
 
 Supply HTTP authentication password. You can also set this via environment
-L<PERINCI_HTTP_PASSWORD> (see L<Perinci::Access> for more details).
+L<PERINCI_HTTP_PASSWORD> (see L<Perinci::Access> for more details) or from
+inside the shell via C<< set password <S> >>.
 
 
 =head1 COMMANDS
 
-=head2 help
+=head2 help [command]
+
+Display help message.
 
 =head2 exit
 
 =head2 pwd
 
-=head2 cd
+Print the current directory (package). When you first enter the shell, current
+directory is set to C</>.
 
-=head2 doc <URI>
+=head2 cd <path>
 
-=head2 list (or ls) [-l] [URI]
+Change directory (package). You can use relative notation (C<../foo>) like in a
+Unix filesystem.
 
-Perform C<list> request. If C<URI> is not specified, will list the current
-"directory" (package entity).
+=head2 doc <path>
+
+Perform C<meta> Riap request and format the result as text.
+
+=head2 list [options] <path>
+
+Perform C<list> Riap request. If C<uri> is not specified, will list the current
+directory (package).
 
 Options:
 
 =over
 
-=item * -l
+=item * --long (-l)
 
-Add C<< detail => 1 >> to Riap request, which will request more details.
+Add C<< detail => 1 >> to the Riap request, which will return more details.
 
 =back
 
-=head2 info <URI>
+=head2 ls
+
+Alias for C<list>.
+
+=head2 info [uri]
 
 Perform C<info> Riap request on an entity at C<URI>.
 
-=head2 request <ACTION> <URI> <KEY=VAL> ...
+=head2 request [options] <action> <uri> [extra]
 
-Perform Riap request to a package entity at C<URI>. You can specify additional
-request key(s). If you want to pass data structures like an array or hash, you
-can specify C<< KEY:j=VAL >>.
+Perform Riap request to a package entity at C<uri>. Extra request keys can be
+specified in C<extra> using the JSON notation.
 
-Example:
+Examples:
 
- riap> call somefunc 'args:j={"name": "Steven Haryanto"}'
+ riap> request call /Package/Sub/somefunc '{"args":{"a":1, "b":2}}'
+ riap> request list /Package/Sub/somefunc '{"detail":1}'
+
+=head2 call [options] <uri> [args]
+
+Perform C<call> Riap request. Arguments are specified using JSON notation.
+
+Examples:
+
+ riap> call /Package/Sub/somefunc '{"a":1, "b":2}'
+
+=head2 set
+
+If invoked without any arguments, will list all available settings. Settings
+are configuration and regulate how the shell behaves.
+
+Known settings:
+
+=over
+
+=item * user (str)
+
+For HTTP authentication.
+
+=item * password (str)
+
+For HTTP authentication.
+
+=item * output_format (str, default: text)
+
+Set output format for command results. The same formatting is used by
+L<Perinci::CmdLine>. See that module or L<Perinci::Result::Format> for more
+details.
+
+=item * debug_show_request (bool, default: 0)
+
+Whether to show raw Riap requests being sent to the server.
+
+Note: since B<riap> uses L<Perinci::Access>, you can also set TRACE=1 and
+LOG_RIAP_REQUEST=1 to accomplish the same thing.
+
+=item * debug_show_response (bool, default: 0)
+
+Whether to show raw Riap responses returned by the server.
+
+Note: since B<riap> uses L<Perinci::Access>, you can also set TRACE=1 and
+LOG_RIAP_RESPONSE=1 to accomplish the same thing.
+
+=back
+
+=head2 set [options] <name> <value>
+
+Set a setting value.
+
+Options:
+
+=over
+
+=item * --json (-j)
+
+Assume that C<value> is in JSON notation. Useful if you want to set a non-scalar
+value (like a hash or array) or an undefined value (C<~> in JSON).
+
+=back
+
+
+=head1 FAQ
+
+=head2 How do I redirect output to files?
+
+B<riap> is meant to be a simple shell, not a full-blown Unix shell. Besides, a
+syntax like this:
+
+ riap> call /Package/Sub/somefunc > /path/to/file
+
+will be confusing since paths map to code entity URIs in B<riap>, not filesystem
+paths.
+
+But something like a setting might be implemented if this is a popular feature
+request.
+
+=head2 What about variables, aliases, looping, or $other_Unix_shell_feature?
+
+Again, B<riap> is meant to be a simple shell, not a full-blown Unix shell. To do
+those things, you are better off using L<peri-run> or L<peri-access> and
+incorporate them in a Unix shell script. For example you can write these two
+short scripts:
+
+ # list-accounts
+ #!/bin/sh
+ peri-access call https://yourservice.com/api/Account/list
+
+ # delete-account (input sanitizing is left as exercise for the readers)
+ #!/bin/sh
+ peri-access call "https://yourservice.com/api/Account/delete?account=$1"
+
+and then write:
+
+ # delete all accounts
+ for a in `list-accounts`; do
+     delete-account "$a"
+ done
 
 
 =head1 ENVIRONMENT
@@ -167,14 +293,27 @@ Example:
 
 =item * RIAP_HISTFILE (str, default: ~/.riap_history)
 
-Like in shells, can be set to empty string to disable history loading/saving.
+Specify location of command history file. Like in shells, can be set to empty
+string to disable history loading/saving.
+
+=item * RIAPRC (str, default: ~/.riaprc)
+
+Specify location of settings file.
 
 =back
 
 
 =head1 FILES
 
-C<~/.riap_history> - history
+=head2 C<~/.riap_history>
+
+Command history file.
+
+=head2 C<~/.riaprc>
+
+Settings file. Each line is either a blank line, a comment (C<# ...>), or C<<
+<name>=<value-in-json> >>. An invalid line (e.g. unknown settings, invalid JSON
+syntax) will cause shell to abort when loading.
 
 
 =head1 TODO
@@ -182,10 +321,6 @@ C<~/.riap_history> - history
 =over
 
 =item * Configurable prompt
-
-=item * Load configuration from file
-
-Especially for HTTP authentication.
 
 =item * RIAP_HISTSIZE
 
