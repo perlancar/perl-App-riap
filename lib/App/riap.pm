@@ -83,7 +83,7 @@ sub _json_obj {
     $json;
 }
 
-sub _json_decode {
+sub json_decode {
     my ($self, $arg) = @_;
     $self->_json_obj->decode($arg);
 }
@@ -168,8 +168,8 @@ sub load_settings {
             next if /^#/;
             my ($n, $v) = /(.+?)\s*=\s*(.+)/
                 or die "$filename:$lineno: Invalid syntax in settings file\n";
-            eval { $v = $self->json_decode($1) };
-            $@ and die "$filename:$lineno: Invalid JSON in setting value\n";
+            eval { $v = $self->json_decode($v) };
+            $@ and die "$filename:$lineno: Invalid JSON in setting value: $@\n";
             $self->setting($n, $v);
         }
         close $fh;
@@ -242,58 +242,35 @@ sub riap_request {
 }
 
 sub _run_cmd {
-    require Getopt::Long;
+    require Perinci::Sub::GetArgs::Argv;
     require Perinci::Result::Format;
 
     my ($self, %args) = @_;
 
-    $self->{_cmdstate} = {};
+    my $opt_help;
 
-    my @argv = @{ $args{argv} };
-    # convert opts to Getopt::Long specification
-    {
-        my @gospec;
-        for my $ok (keys %{ $args{opts} // {} }) {
-            my $ov = $args{opts}{$ok};
+    my $res = Perinci::Sub::GetArgs::Argv::get_args_from_argv(
+        argv => $args{argv},
+        meta => $args{meta},
+        check_required_args => 0,
+        extra_getopts_before => [
+            'help|h' => \$opt_help,
+        ],
+    );
+    return $res unless $res->[0] == 200;
 
-            my $ospec;
-            if (length($ok) > 1) {
-                $ospec = "--$ok";
-            } else {
-                $ospec = "-$ok";
-            }
-            if ($ov->{aliases}) {
-                $ospec .= "|$_" for @{ $ov->{aliases} };
-            }
-            if ($ov->{arg_type}) {
-                if ($ov->{arg_type} eq 'bool') {
-                    $ospec .= "!";
-                } else {
-                    $ospec .= "=s";
-                }
-            }
-            push @gospec, $ospec;
-            push @gospec, sub {
-                $self->{_cmdstate}{opts}{$ok} = $_[1];
-            };
-        }
-        $log->tracef("Getopt::Long spec: %s", \@gospec);
-        $self->{_cmdstate}{opts} = {};
-        my $old_go_opts = Getopt::Long::Configure();
-        my $res = Getopt::Long::GetOptionsFromArray(\@argv, @gospec);
-        Getopt::Long::Configure($old_go_opts);
+    if ($opt_help) {
+        require Perinci::Sub::To::Text;
+        my $ps2t = Perinci::Sub::To::Text->new(url=>'/dummy');
+        $ps2t->{_doc_meta} = $args{meta};
+        say $ps2t->gen_doc;
+        return;
     }
 
-    # call code
-    $args{run}->($self, @argv);
+        $res = $args{code}->(%{$res->[2]}, -shell => $self);
 
-    # display result
-    use Data::Dump; dd $self->setting('output_format');
-    if ($self->{_cmdstate}{res}) {
-        print Perinci::Result::Format::format(
-            $self->{_cmdstate}{res},
-            $self->setting('output_format'));
-    }
+    print Perinci::Result::Format::format(
+        $res, $self->setting('output_format'));
 }
 
 sub _comp_cmd {
@@ -325,23 +302,6 @@ sub _comp_cmd {
 
     ();
 }
-
-$cmdspec{list} = {
-    summary => "Perform list request on package entity",
-    aliases => ['ls'],
-    opts => {
-        l => {
-        },
-    },
-    run => sub {
-        my $self = shift;
-        my $urip = @_ ? $_[0] : $self->{_state}{pwd};
-        $self->{_cmdstate}{res} = $self->riap_request(
-            list => $urip,
-            {detail => $self->{_cmdstate}{opts}{l}},
-        );
-    },
-};
 
 $cmdspec{pwd} = {
     summary => "Show current location",
@@ -441,20 +401,33 @@ $cmdspec{unset} = {
 
 # install commands
 {
+    require App::riap::Commands;
+    require Perinci::Sub::Wrapper;
     no strict 'refs';
-    for my $cmd (keys %cmdspec) {
-        my $spec = $cmdspec{$cmd};
-        *{"smry_$cmd"} = sub { $spec->{summary} };
+    for my $cmd (keys %App::riap::Commands::SPEC) {
+        my $meta = $App::riap::Commands::SPEC{$cmd};
+        my $code = \&{"App::riap::Commands::$cmd"};
+
+        # we actually only want to normalize the meta,
+        my $res = Perinci::Sub::Wrapper::wrap_sub(
+            sub     => \$code,
+            meta    => $meta,
+            #compile => 0, # periwrap 0.46- emits warnings
+        );
+        die "BUG: Can't wrap $cmd: $res->[0] - $res->[1]"
+            unless $res->[0] == 200;
+        $meta = $res->[2]{meta};
+
+        *{"smry_$cmd"} = sub { $meta->{summary} };
         *{"run_$cmd"} = sub {
             my $self = shift;
-            $self->_run_cmd(%{ $spec }, argv=>\@_);
+            $self->_run_cmd(meta=>$meta, argv=>\@_, code=>$code);
         };
         *{"comp_$cmd"} = sub {
             my $self = shift;
-            $self->_comp_cmd(%{ $spec }, argv=>\@_);
         };
-        if (@{ $spec->{aliases} // []}) {
-            *{"alias_$cmd"} = sub { @{ $spec->{aliases} } };
+        if (@{ $meta->{"x.app.riap.aliases"} // []}) {
+            *{"alias_$cmd"} = sub { @{ $meta->{"x.app.riap.aliases"} } };
         }
     }
 }
