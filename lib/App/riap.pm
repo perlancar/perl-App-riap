@@ -265,12 +265,13 @@ sub _run_cmd {
         local $ENV{VERBOSE} = 1;
             require Perinci::CmdLine;
         my $pericmd = Perinci::CmdLine->new(
-            # currently no effect due to url undef
-            #summary => $args{meta}{summary},
             url => undef,
             log_any_app => 0,
             program_name => $args{name},
         );
+        # hacks to avoid specifying url
+        $pericmd->{_help_meta} = $args{meta};
+        $pericmd->{_help_info} = {type=>'function'};
         for (qw/action format format_options version/) {
             delete $pericmd->common_opts->{$_};
         }
