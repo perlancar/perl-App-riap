@@ -248,22 +248,33 @@ sub _run_cmd {
     my ($self, %args) = @_;
 
     my $opt_help;
+    my $opt_verbose;
 
     my $res = Perinci::Sub::GetArgs::Argv::get_args_from_argv(
         argv => $args{argv},
         meta => $args{meta},
         check_required_args => 0,
         extra_getopts_before => [
-            'help|h' => \$opt_help,
+            'help|h|?' => \$opt_help,
+            'verbose' => \$opt_verbose,
         ],
     );
     return $res unless $res->[0] == 200;
 
     if ($opt_help) {
-        require Perinci::Sub::To::Text;
-        my $ps2t = Perinci::Sub::To::Text->new(url=>'/dummy');
-        $ps2t->{_doc_meta} = $args{meta};
-        say $ps2t->gen_doc;
+        local $ENV{VERBOSE} = 1;
+            require Perinci::CmdLine;
+        my $pericmd = Perinci::CmdLine->new(
+            # currently no effect due to url undef
+            #summary => $args{meta}{summary},
+            url => undef,
+            log_any_app => 0,
+            program_name => $args{name},
+        );
+        for (qw/action format format_options version/) {
+            delete $pericmd->common_opts->{$_};
+        }
+        $pericmd->run_help;
         return;
     }
 
@@ -421,7 +432,7 @@ $cmdspec{unset} = {
         *{"smry_$cmd"} = sub { $meta->{summary} };
         *{"run_$cmd"} = sub {
             my $self = shift;
-            $self->_run_cmd(meta=>$meta, argv=>\@_, code=>$code);
+            $self->_run_cmd(name=>$cmd, meta=>$meta, argv=>\@_, code=>$code);
         };
         *{"comp_$cmd"} = sub {
             my $self = shift;
