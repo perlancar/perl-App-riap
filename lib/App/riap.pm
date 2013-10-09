@@ -10,46 +10,7 @@ use parent qw(Term::Shell);
 use utf8;
 
 our %cmdspec;
-
-sub history_filename {
-    my $self = shift;
-    $ENV{RIAP_HISTFILE} // "$ENV{HOME}/.riap_history";
-}
-
-sub load_history {
-    my $self = shift;
-
-    if ($self->{term}->Features->{setHistory}) {
-        my $filename = $self->history_filename;
-        return unless $filename;
-        if (-r $filename) {
-            $log->tracef("Loading history from %s ...", $filename);
-            open(my $fh, '<', $filename)
-                or die "Can't open history file $filename: $!\n";
-            chomp(my @history = <$fh>);
-            $self->{term}->SetHistory(@history);
-            close $fh or die "Can't close history file $filename: $!\n";
-        }
-    }
-}
-
-sub save_history {
-    my $self = shift;
-
-    if ($self->{term}->Features->{getHistory}) {
-        my $filename = $self->history_filename;
-        return unless $filename;
-        $log->tracef("Saving history to %s ...", $filename);
-        open(my $fh, '>', $filename)
-            or die "Can't open history file $filename for writing: $!\n";
-        print $fh "$_\n" for grep { length } $self->{term}->GetHistory;
-        close $fh or die "Can't close history file $filename: $!\n";
-    }
-}
-
-sub settings {
-    [qw/output_format user password/];
-}
+our $json;
 
 sub new {
     require Getopt::Long;
@@ -90,10 +51,13 @@ EOT
 
     my $self = $class->SUPER::new();
     $self->load_history;
+    $self->load_settings;
 
     $self->{_pa} //= Perinci::Access->new;
-    $self->{_state}{user}          //= $opts{user};
-    $self->{_state}{password}      //= $opts{password};
+    $self->{_settings}{user} = $opts{user}
+        if defined $opts{user};
+    $self->{_settings}{password} = $opts{password}
+        if defined $opts{password};
 
     # determine starting pwd
     my $pwd;
@@ -108,8 +72,154 @@ EOT
     $self->{_state}{pwd}           //= $pwd;
     $self->{_state}{start_pwd}     //= $pwd;
 
-    $self->{_state}{output_format} //= $args{output_format} // "text";
     $self;
+}
+
+sub _json_obj {
+    if (!$json) {
+        require JSON;
+        $json = JSON->new->allow_nonref;
+    }
+    $json;
+}
+
+sub _json_decode {
+    my ($self, $arg) = @_;
+    $self->_json_obj->decode($arg);
+}
+
+sub json_encode {
+    my ($self, $arg) = @_;
+    $self->_json_obj->encode($arg);
+}
+
+sub settings_filename {
+    my $self = shift;
+    $ENV{RIAPRC} // "$ENV{HOME}/.riaprc";
+}
+
+sub history_filename {
+    my $self = shift;
+    $ENV{RIAP_HISTFILE} // "$ENV{HOME}/.riap_history";
+}
+
+sub known_settings {
+    state $settings;
+    if (!$settings) {
+        require Perinci::Result::Format;
+        $settings = {
+            debug_show_request => {
+                summary => 'Whether to display raw Riap requests being sent',
+                schema => ['bool', default=>0],
+            },
+            debug_show_response => {
+                summary => 'Whether to display raw Riap responses from server',
+                schema => ['bool', default=>0],
+            },
+            output_format => {
+                schema => ['str*', {
+                    in=>[sort keys %Perinci::Result::Format::Formats],
+                    default=>'text',
+                }],
+            },
+            password => {
+                schema => 'str*',
+            },
+            user => {
+                schema => 'str*',
+            },
+        };
+        require Data::Sah;
+        for (keys %$settings) {
+            for ($settings->{$_}{schema}) {
+                $_ = Data::Sah::normalize_schema($_);
+            }
+        }
+    }
+    $settings;
+}
+
+sub setting {
+    my $self = shift;
+    my $name = shift;
+    die "BUG: Unknown setting '$name'" unless $self->known_settings->{$name};
+    if (@_) {
+        $self->{_settings}{$name} = shift;
+    }
+    $self->{_settings}{$name};
+}
+
+sub load_settings {
+    my $self = shift;
+
+    my $filename = $self->settings_filename;
+
+  LOAD_FILE:
+    {
+        last unless $filename;
+        last unless (-e $filename);
+        $log->tracef("Loading settings from %s ...", $filename);
+        open(my $fh, '<', $filename)
+            or die "Can't open settings file $filename: $!\n";
+        my $lineno = 0;
+        while (<$fh>) {
+            $lineno++;
+            next unless /\S/;
+            next if /^#/;
+            my ($n, $v) = /(.+?)\s*=\s*(.+)/
+                or die "$filename:$lineno: Invalid syntax in settings file\n";
+            eval { $v = $self->json_decode($1) };
+            $@ and die "$filename:$lineno: Invalid JSON in setting value\n";
+            $self->setting($n, $v);
+        }
+        close $fh;
+    }
+
+    # fill in defaults
+    my $kss = $self->known_settings;
+    for (keys %$kss) {
+        if (!exists($self->{_settings}{$_})) {
+            $self->{_settings}{$_} = $kss->{$_}{schema}[1]{default};
+        }
+    }
+}
+
+sub save_settings {
+    die "Unimplemented";
+}
+
+sub load_history {
+    my $self = shift;
+
+    if ($self->{term}->Features->{setHistory}) {
+        my $filename = $self->history_filename;
+        return unless $filename;
+        if (-r $filename) {
+            $log->tracef("Loading history from %s ...", $filename);
+            open(my $fh, '<', $filename)
+                or die "Can't open history file $filename: $!\n";
+            chomp(my @history = <$fh>);
+            $self->{term}->SetHistory(@history);
+            close $fh or die "Can't close history file $filename: $!\n";
+        }
+    }
+}
+
+sub save_history {
+    my $self = shift;
+
+    if ($self->{term}->Features->{getHistory}) {
+        my $filename = $self->history_filename;
+        unless ($filename) {
+            $log->warnf("Skipped saving history since filename not defined");
+            return;
+        }
+        $log->tracef("Saving history to %s ...", $filename);
+        open(my $fh, '>', $filename)
+            or die "Can't open history file $filename for writing: $!\n";
+        print $fh "$_\n" for grep { length } $self->{term}->GetHistory;
+        close $fh or die "Can't close history file $filename: $!\n";
+    }
 }
 
 sub postloop {
@@ -125,8 +235,8 @@ sub prompt_str {
 sub riap_request {
     my ($self, $action, $uri, $extra) = @_;
     my $copts = {
-        user     => $self->{_state}{user},
-        password => $self->{_state}{password},
+        user     => $self->setting('user'),
+        password => $self->setting('password'),
     };
     $self->{_pa}->request($action, $uri, $extra, $copts);
 }
@@ -178,10 +288,11 @@ sub _run_cmd {
     $args{run}->($self, @argv);
 
     # display result
+    use Data::Dump; dd $self->setting('output_format');
     if ($self->{_cmdstate}{res}) {
         print Perinci::Result::Format::format(
             $self->{_cmdstate}{res},
-            $self->{_state}{output_format});
+            $self->setting('output_format'));
     }
 }
 
@@ -288,8 +399,12 @@ $cmdspec{set} = {
         my $self = shift;
         if (!@_) {
             $self->{_cmdstate}{res} = [
-                map { {name=>$_, value=>$self->{_state}{$_}} }
-                    @{ $self->settings }
+                map { +{
+                    name          => $_,
+                    summary       => $self->known_settings->{$_}{summary},
+                    value         => $self->{_settings}{$_},
+                    default_value => $self->known_settings->{$_}{schema}[1]{default},
+                } } sort keys %{ $self->{_settings} }
             ];
             return;
         }
