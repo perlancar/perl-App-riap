@@ -144,7 +144,7 @@ Display help message.
 Print the current directory (package). When you first enter the shell, current
 directory is set to C</>.
 
-=head2 cd <path>
+=head2 cd [path]
 
 Change directory (package). You can use relative notation (C<../foo>) like in a
 Unix filesystem.
@@ -153,9 +153,10 @@ Unix filesystem.
 
 Perform C<meta> Riap request and format the result as text.
 
-=head2 list [options] <path>
+=head2 ls [options] [path ...]
 
-Perform C<list> Riap request. If C<uri> is not specified, will list the current
+List of content of directory (package) or other code entities by performing
+C<list> Riap request. If C<path> is not specified, will list the current
 directory (package).
 
 Options:
@@ -168,85 +169,79 @@ Add C<< detail => 1 >> to the Riap request, which will return more details.
 
 =back
 
-=head2 ls
+=head2 list
 
-Alias for C<list>.
+Alias for C<ls>.
 
-=head2 info [uri]
+=head2 info [path]
 
-Perform C<info> Riap request on an entity at C<URI>.
+Perform C<info> Riap request on an entity at C<path>.
 
-=head2 request [options] <action> <uri> [extra]
+=head2 request [options] <action> <path> [extra]
 
-Perform Riap request to a package entity at C<uri>. Extra request keys can be
-specified in C<extra> using the JSON notation.
+Perform Riap request to a code entity at C<path>. Extra request keys can be
+specified in C<extra>.
 
 Examples:
 
  riap> request call /Package/Sub/somefunc '{"args":{"a":1, "b":2}}'
  riap> request list /Package/Sub/somefunc '{"detail":1}'
 
-=head2 call [options] <uri> [args]
+=head2 call [options] <path> [args]
 
-Perform C<call> Riap request. Arguments are specified using JSON notation.
+Perform C<call> Riap request. Note that C<call> command is actually optional:
+the shell performs call requests by default on paths.
 
 Examples:
 
- riap> call /Package/Sub/somefunc '{"a":1, "b":2}'
+ riap> call /Package/Sub/somefunc '{"foo":1, "bar":2}'
 
-=head2 set
+which is equivalent to:
 
-If invoked without any arguments, will list all available settings. Settings
-are configuration and regulate how the shell behaves.
+ riap> /Package/Sub/somefunc --foo 1 --bar 2
 
-Known settings:
+=head2 set <name> <value>
 
-=over
+If invoked without any argument, will list all known settings. If C<name> is
+specified but C<value> is not, will show value for that particular setting. If
+C<name> and C<value> is both specified, will set a setting's value.
 
-=item * user (str)
+
+=head1 SETTINGS
+
+Settings are configuration and regulate how the shell behaves.
+
+=head2 user => str
 
 For HTTP authentication.
 
-=item * password (str)
+=head2 password => str
 
 For HTTP authentication.
 
-=item * output_format (str, default: text)
+=head2 output_format => str (default: C<text>)
 
 Set output format for command results. The same formatting is used by
 L<Perinci::CmdLine>. See that module or L<Perinci::Result::Format> for more
 details.
 
-=item * debug_show_request (bool, default: 0)
+=head2 debug_show_request => bool (default: 0)
 
 Whether to show raw Riap requests being sent to the server.
 
-Note: since B<riap> uses L<Perinci::Access>, you can also set TRACE=1 and
-LOG_RIAP_REQUEST=1 to accomplish the same thing.
+Note: since B<riap> uses L<Perinci::Access>, you can show the log statement,
+e.g. using:
 
-=item * debug_show_response (bool, default: 0)
+ % TRACE=1 LOG_RIAP_REQUEST=1 perl -MLog::Any::App /path/to/riap ...
+
+=head2 debug_show_response => bool (default: 0)
 
 Whether to show raw Riap responses returned by the server.
 
-Note: since B<riap> uses L<Perinci::Access>, you can also set TRACE=1 and
-LOG_RIAP_RESPONSE=1 to accomplish the same thing.
+Note: since B<riap> uses L<Perinci::Access>, you can show the log statement,
+e.g. using:
 
-=back
-
-=head2 set [options] <name> <value>
-
-Set a setting value.
-
-Options:
-
-=over
-
-=item * --json (-j)
-
-Assume that C<value> is in JSON notation. Useful if you want to set a non-scalar
-value (like a hash or array) or an undefined value (C<~> in JSON).
-
-=back
+ % TRACE=1 LOG_RIAP_RESPONSE=1 perl -MLog::Any::App /path/to/riap ...
 
 
 =head1 FAQ
@@ -289,18 +284,14 @@ and then write:
 
 =head1 ENVIRONMENT
 
-=over
-
-=item * RIAP_HISTFILE (str, default: ~/.riap_history)
+=head2 RIAP_HISTFILE => str (default: C<~/.riap_history>)
 
 Specify location of command history file. Like in shells, can be set to empty
 string to disable history loading/saving.
 
-=item * RIAPRC (str, default: ~/.riaprc)
+=head2 RIAPRC => str (default: C<~/.riaprc>)
 
 Specify location of settings file.
-
-=back
 
 
 =head1 FILES

@@ -9,9 +9,6 @@ use experimental 'smartmatch';
 use parent qw(Term::Shell);
 use utf8;
 
-our %cmdspec;
-our $json;
-
 sub new {
     require Getopt::Long;
     require Perinci::Access;
@@ -49,15 +46,15 @@ EOT
     Getopt::Long::GetOptions(@gospec);
     Getopt::Long::Configure($old_go_opts);
 
+    $class->_install_cmds;
     my $self = $class->SUPER::new();
     $self->load_history;
     $self->load_settings;
 
+    # set some settings from cmdline args
     $self->{_pa} //= Perinci::Access->new;
-    $self->{_settings}{user} = $opts{user}
-        if defined $opts{user};
-    $self->{_settings}{password} = $opts{password}
-        if defined $opts{password};
+    $self->setting(user     => $opts{user})     if defined $opts{user};
+    $self->setting(password => $opts{password}) if defined $opts{password};
 
     # determine starting pwd
     my $pwd;
@@ -76,6 +73,7 @@ EOT
 }
 
 sub _json_obj {
+    state $json;
     if (!$json) {
         require JSON;
         $json = JSON->new->allow_nonref;
@@ -110,23 +108,26 @@ sub known_settings {
         $settings = {
             debug_show_request => {
                 summary => 'Whether to display raw Riap requests being sent',
-                schema => ['bool', default=>0],
+                schema  => ['bool', default=>0],
             },
             debug_show_response => {
                 summary => 'Whether to display raw Riap responses from server',
-                schema => ['bool', default=>0],
+                schema  => ['bool', default=>0],
             },
             output_format => {
-                schema => ['str*', {
+                summary => 'Output format for command (e.g. yaml, json, text)',
+                schema  => ['str*', {
                     in=>[sort keys %Perinci::Result::Format::Formats],
                     default=>'text',
                 }],
             },
             password => {
-                schema => 'str*',
+                summary => 'For HTTP authentication to server',
+                schema  => 'str*',
             },
             user => {
-                schema => 'str*',
+                summary => 'For HTTP authentication to server',
+                schema  => 'str*',
             },
         };
         require Data::Sah;
@@ -144,9 +145,15 @@ sub setting {
     my $name = shift;
     die "BUG: Unknown setting '$name'" unless $self->known_settings->{$name};
     if (@_) {
+        my $oldval = $self->{_settings}{$name};
         $self->{_settings}{$name} = shift;
+        return $oldval;
     }
-    $self->{_settings}{$name};
+    # return default value if not set
+    unless (exists $self->{_settings}{$name}) {
+        return $self->known_settings->{$name}{schema}[1]{default};
+    }
+    return $self->{_settings}{$name};
 }
 
 sub load_settings {
@@ -173,14 +180,6 @@ sub load_settings {
             $self->setting($n, $v);
         }
         close $fh;
-    }
-
-    # fill in defaults
-    my $kss = $self->known_settings;
-    for (keys %$kss) {
-        if (!exists($self->{_settings}{$_})) {
-            $self->{_settings}{$_} = $kss->{$_}{schema}[1]{default};
-        }
     }
 }
 
@@ -241,46 +240,64 @@ sub riap_request {
     $self->{_pa}->request($action, $uri, $extra, $copts);
 }
 
+sub _help_cmd {
+    require Perinci::CmdLine;
+
+    my ($self, %args) = @_;
+    my $cmd = $args{name};
+
+    local $ENV{VERBOSE} = 1;
+    my $pericmd = Perinci::CmdLine->new(
+        url => undef,
+        log_any_app => 0,
+        program_name => $args{name},
+    );
+    # hacks to avoid specifying url
+    $pericmd->{_help_meta} = $args{meta};
+    $pericmd->{_help_info} = {type=>'function'};
+    for (qw/action format format_options version/) {
+        delete $pericmd->common_opts->{$_};
+    }
+    $pericmd->run_help;
+}
+
 sub _run_cmd {
     require Perinci::Sub::GetArgs::Argv;
     require Perinci::Result::Format;
 
     my ($self, %args) = @_;
+    my $cmd = $args{name};
 
     my $opt_help;
     my $opt_verbose;
 
-    my $res = Perinci::Sub::GetArgs::Argv::get_args_from_argv(
-        argv => $args{argv},
-        meta => $args{meta},
-        check_required_args => 0,
-        extra_getopts_before => [
-            'help|h|?' => \$opt_help,
-            'verbose' => \$opt_verbose,
-        ],
-    );
-    return $res unless $res->[0] == 200;
-
-    if ($opt_help) {
-        local $ENV{VERBOSE} = 1;
-            require Perinci::CmdLine;
-        my $pericmd = Perinci::CmdLine->new(
-            url => undef,
-            log_any_app => 0,
-            program_name => $args{name},
+    my $res;
+    {
+        $res = Perinci::Sub::GetArgs::Argv::get_args_from_argv(
+            argv => $args{argv},
+            meta => $args{meta},
+            check_required_args => 0,
+            extra_getopts_before => [
+                'help|h|?'  => \$opt_help,
+                'verbose|v' => \$opt_verbose,
+            ],
         );
-        # hacks to avoid specifying url
-        $pericmd->{_help_meta} = $args{meta};
-        $pericmd->{_help_info} = {type=>'function'};
-        for (qw/action format format_options version/) {
-            delete $pericmd->common_opts->{$_};
+        last unless $res->[0] == 200;
+
+        if ($opt_help) {
+            $self->_help_cmd(name=>$cmd, meta=>$args{meta});
+            $res = [200, "OK"];
+            last;
         }
-        $pericmd->run_help;
-        return;
-    }
+
+        if ($res->[3] && defined $res->[3]{'func.missing_arg'}) {
+            $res = [400, "Missing required arg '".
+                        $res->[3]{'func.missing_arg'}."'"];
+            last;
+        }
 
         $res = $args{code}->(%{$res->[2]}, -shell => $self);
-
+    }
     print Perinci::Result::Format::format(
         $res, $self->setting('output_format'));
 }
@@ -315,120 +332,31 @@ sub _comp_cmd {
     ();
 }
 
-$cmdspec{pwd} = {
-    summary => "Show current location",
-    opts => {
-    },
-    run => sub {
-        my $self = shift;
-        say $self->{_state}{pwd};
-    },
-};
+my $installed = 0;
+sub _install_cmds {
+    my $class = shift;
 
-$cmdspec{cd} = {
-    summary => "Change location",
-    opts => {
-    },
-    run => sub {
-        require File::Spec::Unix;
+    return if $installed;
 
-        my $self = shift;
-        my $dir = @_ ? $_[0] : $self->{_state}{start_pwd};
-        my $opwd = $self->{_state}{pwd};
-        my $npwd;
-        if ($dir eq '-') {
-            if (defined $self->{_state}{opwd}) {
-                $npwd = $self->{_state}{opwd};
-            } else {
-                warn "No old pwd set\n";
-                return;
-            }
-        } else {
-            if (File::Spec::Unix->file_name_is_absolute($dir)) {
-                $npwd = $dir;
-            } else {
-                $npwd = File::Spec::Unix->catdir($opwd, $dir);
-            }
-            $npwd = File::Spec::Unix->canonpath($npwd);
-            # canonpath() doesn't cleanup foo/..
-            $npwd =~ s![^/]+/\.\.(?=/|\z)!!g;
-            $npwd .= "/" unless $npwd =~ m!/$!;
-
-            # check if path actually exists
-            my $res = $self->riap_request(info => $npwd);
-        }
-        $log->tracef("Setting npwd=%s, opwd=%s", $npwd, $opwd);
-        $self->{_state}{pwd}  = $npwd;
-        $self->{_state}{opwd} = $opwd;
-    },
-};
-
-$cmdspec{set} = {
-    summary => "List or set settings",
-    opts => {
-    },
-    run => sub {
-        my $self = shift;
-        if (!@_) {
-            $self->{_cmdstate}{res} = [
-                map { +{
-                    name          => $_,
-                    summary       => $self->known_settings->{$_}{summary},
-                    value         => $self->{_settings}{$_},
-                    default_value => $self->known_settings->{$_}{schema}[1]{default},
-                } } sort keys %{ $self->{_settings} }
-            ];
-            return;
-        }
-        unless (@_ == 2) {
-            warn "Usage: set <setting> <value>\n";
-        }
-        my $s = $_[0];
-        unless ($s ~~ @{ $self->settings }) {
-            warn "Unknown setting '$s', use 'set' to list known settings\n";
-            return;
-        }
-        $self->{_state}{$s} = $_[1];
-    },
-};
-
-$cmdspec{unset} = {
-    summary => "Unset a setting",
-    opts => {
-    },
-    run => sub {
-        my $self = shift;
-        unless (@_ == 1) {
-            warn "Usage: unset <setting>\n";
-            return;
-        }
-        my $s = $_[0];
-        unless ($s ~~ @{ $self->settings }) {
-            warn "Unknown setting '$s', use 'set' to list current settings\n";
-            return;
-        }
-        delete $self->{_state}{$s};
-    },
-};
-
-# install commands
-{
     require App::riap::Commands;
     require Perinci::Sub::Wrapper;
     no strict 'refs';
-    for my $cmd (keys %App::riap::Commands::SPEC) {
+    for my $cmd (sort keys %App::riap::Commands::SPEC) {
+        $log->trace("Installing command $cmd ...");
         my $meta = $App::riap::Commands::SPEC{$cmd};
         my $code = \&{"App::riap::Commands::$cmd"};
 
-        # we actually only want to normalize the meta,
+        # we actually only want to normalize the meta
         my $res = Perinci::Sub::Wrapper::wrap_sub(
             sub     => \$code,
             meta    => $meta,
-            #compile => 0, # periwrap 0.46- emits warnings
+            compile => 0,
         );
         die "BUG: Can't wrap $cmd: $res->[0] - $res->[1]"
             unless $res->[0] == 200;
         $meta = $res->[2]{meta};
+
+        #use Data::Dump; dd $meta;
 
         *{"smry_$cmd"} = sub { $meta->{summary} };
         *{"run_$cmd"} = sub {
@@ -439,9 +367,12 @@ $cmdspec{unset} = {
             my $self = shift;
         };
         if (@{ $meta->{"x.app.riap.aliases"} // []}) {
+            # XXX not yet installed by Term::Shell?
             *{"alias_$cmd"} = sub { @{ $meta->{"x.app.riap.aliases"} } };
         }
+        *{"help_$cmd"} = sub { $class->_help_cmd(name=>$cmd, meta=>$meta) };
     }
+    $installed++;
 }
 
 1;
