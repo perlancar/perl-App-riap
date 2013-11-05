@@ -23,10 +23,13 @@ my $_complete_dir_or_file = sub {
     my $pwd = $shell->state("pwd");
     my $uri = length($dir) ? concat_path_n($pwd, $dir) : $pwd;
     $uri .= "/" unless $uri =~ m!/\z!;
-    my $extra = {}; $extra->{type} = 'package' if $which eq 'dir';
+    my $extra = {};
+    $extra->{type} = 'package' if $which eq 'dir';
+    $extra->{type} = 'function' if $which eq 'executable';
     my $res = $shell->riap_request(list => $uri, $extra);
     return [] unless $res->[0] == 200;
-    my @res = ("../");
+    my @res = ();
+    push @res, "../" unless $uri eq '/';
     for (@{ $res->[2] }) {
         s/\A\Q$uri\E//;
         push @res, "$dir$_";
@@ -40,6 +43,10 @@ my $complete_dir = sub {
 
 my $complete_file_or_dir = sub {
     $_complete_dir_or_file->('file_or_dir', @_);
+};
+
+my $complete_executable = sub {
+    $_complete_dir_or_file->('executable', @_);
 };
 
 my $complete_setting_name = sub {

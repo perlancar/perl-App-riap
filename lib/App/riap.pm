@@ -10,7 +10,7 @@ use Log::Any '$log';
 use parent qw(Term::Shell);
 
 use Data::Clean::JSON;
-use Path::Naive;
+use Path::Naive qw(concat_path_n);
 use Term::ANSIColor;
 
 my $cleanser = Data::Clean::JSON->get_cleanser;
@@ -337,10 +337,91 @@ sub _run_cmd {
 }
 
 sub comp_ {
+    require SHARYANTO::Complete::Util;
+
+    my $self = shift;
+    my ($cmd, $word0, $line, $start) = @_;
+
+    my @res = ("help", "exit");
+    push @res, keys %App::riap::Commands::SPEC;
+
+    # add functions
+    my ($dir, $word) = $word0 =~ m!(.*/)?(.*)!;
+    $dir //= "";
+    my $pwd = $self->state("pwd");
+    my $uri = length($dir) ? concat_path_n($pwd, $dir) : $pwd;
+    $uri .= "/" unless $uri =~ m!/\z!;
+    my $extra = {detail=>1};
+    my $res = $self->riap_request(list => $uri, $extra);
+    if ($res->[0] == 200) {
+        for (@{ $res->[2] }) {
+            my $u = $_->{uri};
+            next unless $_->{type} =~ /\A(package|function)\z/;
+            $u =~ s!\A\Q$uri\E!!;
+            push @res, "$dir$u";
+        }
+    }
+    #use Data::Dump; dd \@res;
+
+    @{ SHARYANTO::Complete::Util::complete_array(array=>\@res, word=>$word0) };
+}
+
+sub catch_run {
+    my $self = shift;
+    my ($cmd, @argv) = @_;
+
+    my $pwd = $self->state("pwd");
+    my $uri = concat_path_n($pwd, $cmd);
+    my $res = $self->riap_request(info => $uri);
+    if ($res->[0] == 404) {
+        return [404, "No such command or executable"];
+    } elsif ($res->[0] != 200) {
+        return $res;
+    }
+    do {
+        say "ERROR: Not an executable (Riap function)";
+        return;
+    } unless $res->[2]{type} eq 'function';
+    my $name = $res->[2]{uri}; $name =~ s!.+/!!;
+
+    $res = $self->riap_request(meta => $uri);
+    return $res unless $res->[0] == 200;
+    my $meta = $res->[2];
+
+    $self->_run_cmd(
+        name=>$name, meta=>$meta, argv=>\@argv,
+        code=>sub {
+            my %args = @_;
+            delete $args{-shell};
+            $self->riap_request(call => $uri, {args=>\%args});
+        },
+    );
+}
+
+sub catch_comp {
+    require Perinci::Sub::Complete;
+
     my $self = shift;
     my ($cmd, $word, $line, $start) = @_;
-    #use Data::Dump; dd \@_;
-    ();
+
+    my $pwd = $self->state("pwd");
+    my $uri = concat_path_n($pwd, $cmd);
+    my $res = $self->riap_request(info => $uri);
+    return () unless $res->[0] == 200;
+    return () unless $res->[2]{type} eq 'function';
+
+    $res = $self->riap_request(meta => $uri);
+    return () unless $res->[0] == 200;
+    my $meta = $res->[2];
+
+    local $ENV{COMP_LINE} = $line;
+    local $ENV{COMP_POINT} = $start + length($word);
+    $res = Perinci::Sub::Complete::shell_complete_arg(
+        meta => $meta,
+        common_opts => [qw/--help -h -? --verbose -v/],
+        extra_completer_args => {-shell => $self},
+    );
+    @$res;
 }
 
 my $installed = 0;
