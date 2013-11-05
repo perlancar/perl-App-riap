@@ -5,7 +5,49 @@ use strict;
 use warnings;
 use Log::Any '$log';
 
+use Path::Naive qw(is_abs_path normalize_path concat_path_n);
+#use Perinci::Sub::Util qw(err);
+
 our %SPEC;
+
+my $_complete_dir_or_file = sub {
+    my $which = shift;
+
+    my %args = @_;
+    my $shell = $args{parent_args}{parent_args}{extra_completer_args}{-shell};
+
+    my $word0 = $args{word};
+    my ($dir, $word) = $word0 =~ m!(.*/)?(.*)!;
+    $dir //= "";
+
+    my $pwd = $shell->state("pwd");
+    my $uri = length($dir) ? concat_path_n($pwd, $dir) : $pwd;
+    $uri .= "/" unless $uri =~ m!/\z!;
+    my $extra = {}; $extra->{type} = 'package' if $which eq 'dir';
+    my $res = $shell->riap_request(list => $uri, $extra);
+    return [] unless $res->[0] == 200;
+    my @res = ("../");
+    for (@{ $res->[2] }) {
+        s/\A\Q$uri\E//;
+        push @res, "$dir$_";
+    }
+    \@res;
+};
+
+my $complete_dir = sub {
+    $_complete_dir_or_file->('dir', @_);
+};
+
+my $complete_file_or_dir = sub {
+    $_complete_dir_or_file->('file_or_dir', @_);
+};
+
+my $complete_setting_name = sub {
+    my %args = @_;
+    my $shell = $args{parent_args}{parent_args}{extra_completer_args}{-shell};
+
+    [keys %{ $shell->known_settings }];
+};
 
 # format of summary: <shell-ish description> (<equivalent in terms of Riap>)
 #
@@ -63,47 +105,48 @@ $SPEC{cd} = {
     v => 1.1,
     summary => "changes directory",
     args => {
-        path => {
-            summary => '',
-            schema  => ['str*'],
-            req     => 1,
-            pos     => 0,
+        dir => {
+            summary    => '',
+            schema     => ['str*'],
+            pos        => 0,
+            completion => $complete_dir,
         },
     },
 };
 sub cd {
-    require File::Spec::Unix;
-
     my %args = @_;
+    my $dir = $args{dir};
     my $shell = $args{-shell};
 
-    my $dir = @_ ? $_[0] : $shell->{_state}{start_pwd};
-    my $opwd = $shell->{_state}{pwd};
+    my $opwd = $shell->state("pwd");
     my $npwd;
-    if ($dir eq '-') {
-        if (defined $shell->{_state}{opwd}) {
-            $npwd = $shell->{_state}{opwd};
+    if (!defined($dir)) {
+        # back to start pwd
+        $npwd = $shell->state("start_pwd");
+    } elsif ($dir eq '-') {
+        if (defined $shell->state("old_pwd")) {
+            $npwd = $shell->state("old_pwd");
         } else {
             warn "No old pwd set\n";
-            return;
+            return [200, "Nothing done"];
         }
     } else {
-        if (File::Spec::Unix->file_name_is_absolute($dir)) {
-            $npwd = $dir;
+        if (is_abs_path($dir)) {
+            $npwd = normalize_path($dir);
         } else {
-            $npwd = File::Spec::Unix->catdir($opwd, $dir);
+            $npwd = concat_path_n($opwd, $dir);
         }
-        $npwd = File::Spec::Unix->canonpath($npwd);
-        # canonpath() doesn't cleanup foo/..
-        $npwd =~ s![^/]+/\.\.(?=/|\z)!!g;
-        $npwd .= "/" unless $npwd =~ m!/$!;
-
-        # check if path actually exists
-        my $res = $shell->riap_request(info => $npwd);
     }
+    # check if path actually exists
+    my $uri = $npwd . ($npwd =~ m!/\z! ? "" : "/");
+    my $res = $shell->riap_request(info => $uri);
+    return $res if $res->[0] != 200;
+    #return [403, "Not a directory (package)"]
+    #    unless $res->[2]{type} eq 'package';
+
     $log->tracef("Setting npwd=%s, opwd=%s", $npwd, $opwd);
-    $shell->{_state}{pwd}  = $npwd;
-    $shell->{_state}{opwd} = $opwd;
+    $shell->state(pwd     => $npwd);
+    $shell->state(old_pwd => $opwd);
     [200, "OK"];
 }
 
@@ -117,12 +160,7 @@ $SPEC{set} = {
             pos        => 0,
             # we use custom completion because the list of known settings must
             # be retrieved through the shell object
-            completion => sub {
-                my %args = @_;
-                my $shell = $args{parent_args}{parent_args}->
-                    {extra_completer_args}{-shell};
-                [keys %{ $shell->known_settings }];
-            },
+            completion => $complete_setting_name,
         },
         value => {
             summary    => '',
@@ -191,10 +229,11 @@ $SPEC{unset} = {
     summary => "unsets a setting",
     args => {
         name => {
-            summary => '',
-            schema  => ['str*'],
-            req     => 1,
-            pos     => 0,
+            summary    => '',
+            schema     => ['str*'],
+            req        => 1,
+            pos        => 0,
+            completion => $complete_setting_name,
         },
     },
 };
@@ -206,7 +245,7 @@ sub unset {
 
     return [400, "Unknown setting, use 'set' to list all known settings"]
         unless exists $shell->known_settings->{$name};
-    delete $shell->{_setting}{$name};
+    delete $shell->{_settings}{$name};
     [200, "OK"];
 }
 

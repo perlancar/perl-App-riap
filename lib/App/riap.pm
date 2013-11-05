@@ -2,12 +2,18 @@ package App::riap;
 
 use 5.010001;
 use strict;
+use utf8;
 use warnings;
+#use experimental 'smartmatch';
 use Log::Any '$log';
-use experimental 'smartmatch';
 
 use parent qw(Term::Shell);
-use utf8;
+
+use Data::Clean::JSON;
+use Path::Naive;
+use Term::ANSIColor;
+
+my $cleanser = Data::Clean::JSON->get_cleanser;
 
 sub new {
     require Getopt::Long;
@@ -60,14 +66,11 @@ EOT
     my $pwd;
     my $surl = URI->new($ARGV[0] // "pl:/");
     $surl->scheme('pl') if !$surl->scheme;
-    $self->{_state}{server_url}    //= $surl;
     my $res = $self->{_pa}->parse_url($surl);
     die "Can't parse url $surl\n" unless $res;
-    $pwd = $res->{path};
-    $pwd = "/$pwd" unless $pwd =~ m!^/!;
-    $pwd .= "/" unless $pwd =~ m!/$!;
-    $self->{_state}{pwd}           //= $pwd;
-    $self->{_state}{start_pwd}     //= $pwd;
+    $self->state(server_url => $surl);
+    $self->state(pwd        => $res->{path});
+    $self->state(start_pwd  => $res->{path});
 
     $self;
 }
@@ -88,7 +91,7 @@ sub json_decode {
 
 sub json_encode {
     my ($self, $arg) = @_;
-    $self->_json_obj->encode($arg);
+    $self->_json_obj->encode($cleanser->clone_and_clean($arg));
 }
 
 sub settings_filename {
@@ -154,6 +157,22 @@ sub setting {
         return $self->known_settings->{$name}{schema}[1]{default};
     }
     return $self->{_settings}{$name};
+}
+
+sub state {
+    my $self = shift;
+    my $name = shift;
+    #die "BUG: Unknown state '$name'" unless $self->known_state_vars->{$name};
+    if (@_) {
+        my $oldval = $self->{_state}{$name};
+        $self->{_state}{$name} = shift;
+        return $oldval;
+    }
+    # return default value if not set
+    #unless (exists $self->{_state}{$name}) {
+    #    return $self->known_state_vars->{$name}{schema}[1]{default};
+    #}
+    return $self->{_state}{$name};
 }
 
 sub load_settings {
@@ -228,7 +247,13 @@ sub postloop {
 }
 
 sub prompt_str {
-    "riap> ";
+    my $self = shift;
+    join(
+        "",
+        colored("riap", "bright_blue"), " ",
+        colored($self->state("pwd"), "green"), " ",
+        "> ",
+    );
 }
 
 sub riap_request {
@@ -237,7 +262,15 @@ sub riap_request {
         user     => $self->setting('user'),
         password => $self->setting('password'),
     };
-    $self->{_pa}->request($action, $uri, $extra, $copts);
+    if ($self->setting("debug_show_request")) {
+        say "DEBUG: Riap request: ".
+            $self->json_encode({action=>$action, uri=>$uri, %{$extra // {}}});
+    }
+    my $res = $self->{_pa}->request($action, $uri, $extra, $copts);
+    if ($self->setting("debug_show_request")) {
+        say "DEBUG: Riap response: ".$self->json_encode($res);
+    }
+    $res;
 }
 
 sub _help_cmd {
@@ -277,6 +310,7 @@ sub _run_cmd {
             argv => $args{argv},
             meta => $args{meta},
             check_required_args => 0,
+            per_arg_json => 1,
             extra_getopts_before => [
                 'help|h|?'  => \$opt_help,
                 'verbose|v' => \$opt_verbose,
@@ -302,11 +336,10 @@ sub _run_cmd {
         $res, $self->setting('output_format'));
 }
 
-sub catch_comp {
-    #use Data::Dump; dd @_;
-
+sub comp_ {
     my $self = shift;
     my ($cmd, $word, $line, $start) = @_;
+    #use Data::Dump; dd \@_;
     ();
 }
 
