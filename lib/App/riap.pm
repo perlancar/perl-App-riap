@@ -13,6 +13,8 @@ use Data::Clean::JSON;
 use Path::Naive qw(concat_path_n);
 use Term::ANSIColor;
 
+# VERSION
+
 my $cleanser = Data::Clean::JSON->get_cleanser;
 
 sub new {

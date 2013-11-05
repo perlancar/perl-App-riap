@@ -8,6 +8,8 @@ use Log::Any '$log';
 use Path::Naive qw(is_abs_path normalize_path concat_path_n);
 #use Perinci::Sub::Util qw(err);
 
+# VERSION
+
 our %SPEC;
 
 my $_complete_dir_or_file = sub {
@@ -291,3 +293,5 @@ sub unset {
 1;
 
 # ABSTRACT: riap shell commands
+
+=for Pod::Coverage .+

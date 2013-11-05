@@ -130,6 +130,8 @@ Supply HTTP authentication password. You can also set this via environment
 L<PERINCI_HTTP_PASSWORD> (see L<Perinci::Access> for more details) or from
 inside the shell via C<< set password <S> >>.
 
+=back
+
 
 =head1 COMMANDS
 
