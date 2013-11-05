@@ -65,12 +65,23 @@ $SPEC{ls} = {
                 l => {},
             },
         },
-        paths => {
-            summary => 'Path(s) (URIs) to list',
-            schema => ['array*' => 'of' => 'str*'],
-            req => 0,
-            pos => 0,
-            greedy => 1,
+        # XXX temporarily use single path instead of multipl, periscomp can't
+        # handle it
+
+        #paths => {
+        #    summary    => 'Path(s) (URIs) to list',
+        #    schema     => ['array*' => 'of' => 'str*'],
+        #    req        => 0,
+        #    pos        => 0,
+        #    greedy     => 1,
+        #    completion => $complete_file_or_dir,
+        #},
+        path => {
+            summary    => 'Path (URI) to list',
+            schema     => 'str*',
+            req        => 0,
+            pos        => 0,
+            completion => $complete_file_or_dir,
         },
     },
     "x.app.riap.aliases" => ["list"],
@@ -79,13 +90,34 @@ sub ls {
     my %args = @_;
     my $shell = $args{-shell};
 
-    [200, "OK", "List completed"];
+    my $extra = {}; $extra->{detail} = 1 if $args{long};
+    my $pwd = $shell->state("pwd");
+    my $path = $args{path};
+    my $uri;
+    my ($dir, $leaf);
 
-    #my $urip = @_ ? $_[0] : $shell->{_state}{pwd};
-    #$shell->{_cmdstate}{res} = $shell->riap_request(
-    #    list => $urip,
-    #    {detail => $shell->{_cmdstate}{opts}{l}},
-    #);
+    $uri = $pwd . ($pwd =~ m!/\z! ? "" : "/");
+    if (defined $path) {
+        ($dir, $leaf) = $path =~ m!(.*/)?(.*)!;
+        $dir //= "";
+        if (length $dir) {
+            $uri = concat_path_n($pwd, $dir);
+            $uri .= ($uri =~ m!/\z! ? "" : "/");
+        }
+    }
+    my $res = $shell->riap_request(list => $uri, $extra);
+
+    my @res;
+    for (@{ $res->[2] }) {
+        my $u = $args{long} ? $_->{uri} : $_;
+        next if defined($leaf) && length($leaf) && $u !~ m!.+/\Q$leaf\E/?\z!;
+        push @res, $_;
+    }
+    if (!@res && defined($leaf)) {
+        return [404, "No such entity"];
+    }
+    $res->[2] = \@res;
+    [200, "OK", \@res];
 }
 
 $SPEC{pwd} = {
