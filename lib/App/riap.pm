@@ -307,7 +307,7 @@ sub catch_comp {
 
     my $self = shift;
     my ($cmd, $word, $line, $start) = @_;
-    [];
+    ();
 }
 
 my $installed = 0;
