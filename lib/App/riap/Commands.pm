@@ -112,14 +112,41 @@ $SPEC{set} = {
     summary => "lists or sets setting",
     args => {
         name => {
-            summary => '',
-            schema  => ['str*'],
-            pos     => 0,
+            summary    => '',
+            schema     => ['str*'],
+            pos        => 0,
+            # we use custom completion because the list of known settings must
+            # be retrieved through the shell object
+            completion => sub {
+                my %args = @_;
+                my $shell = $args{parent_args}{parent_args}->
+                    {extra_completer_args}{-shell};
+                [keys %{ $shell->known_settings }];
+            },
         },
         value => {
-            summary => '',
-            schema  => ['any'],
-            pos     => 1,
+            summary    => '',
+            schema     => ['any'],
+            pos        => 1,
+            completion => sub {
+                require Perinci::Sub::Complete;
+
+                my %args = @_;
+                my $shell = $args{parent_args}{parent_args}->
+                    {extra_completer_args}{-shell};
+
+                my $args = $args{args};
+                return [] unless $args->{name};
+                my $setting = $shell->known_settings->{ $args->{name} };
+                return [] unless $setting;
+
+                # a hack, construct a throwaway meta and using that to complete
+                # setting argument as function argument
+                Perinci::Sub::Complete::complete_arg_val(
+                    arg=>'foo',
+                    meta=>{v=>1.1, args=>{foo=>{schema=>$setting->{schema}}}},
+                );
+            },
         },
     },
 };

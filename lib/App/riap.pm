@@ -302,34 +302,12 @@ sub _run_cmd {
         $res, $self->setting('output_format'));
 }
 
-sub _comp_cmd {
-    require Perinci::BashComplete;
+sub catch_comp {
+    #use Data::Dump; dd @_;
 
-    my ($self, %args) = @_;
-
-    #use Data::Dump; dd $args{argv};
-    my @argv = @{ $args{argv} };
-    my ($word, $line, $start) = @argv;
-
-    # currently rather simplistic, only complete option name or uri path
-    #my @left = $self->line_parsed(substr($line, 0, $start));
-    #my @right = ...
-    if ($word =~ /^-/) {
-        my @opts;
-        for my $ok (keys %{ $args{opts} }) {
-            my $ov = $args{opts}{$ok};
-            push @opts, length($ok) > 1 ? "--$ok" : "-$ok";
-            for (@{ $ov->{aliases} // [] }) {
-                push @opts, length($_) > 1 ? "--$_" : "-$_";
-            }
-        }
-        return @{ Perinci::BashComplete::complete_array(
-            word=>$word, array=>\@opts) };
-    } else {
-        # complete path
-    }
-
-    ();
+    my $self = shift;
+    my ($cmd, $word, $line, $start) = @_;
+    [];
 }
 
 my $installed = 0;
@@ -364,7 +342,18 @@ sub _install_cmds {
             $self->_run_cmd(name=>$cmd, meta=>$meta, argv=>\@_, code=>$code);
         };
         *{"comp_$cmd"} = sub {
+            require Perinci::Sub::Complete;
+
             my $self = shift;
+            my ($word, $line, $start) = @_;
+            local $ENV{COMP_LINE} = $line;
+            local $ENV{COMP_POINT} = $start + length($word);
+            my $res = Perinci::Sub::Complete::shell_complete_arg(
+                meta => $meta,
+                common_opts => [qw/--help -h -? --verbose -v/],
+                extra_completer_args => {-shell => $self},
+            );
+            @$res;
         };
         if (@{ $meta->{"x.app.riap.aliases"} // []}) {
             # XXX not yet installed by Term::Shell?
