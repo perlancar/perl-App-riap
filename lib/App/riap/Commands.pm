@@ -36,14 +36,6 @@ my $_complete_dir_or_file = sub {
         s/\A\Q$uri\E//;
         push @res, "$dir$_";
     }
-
-    # trick to mimic shell's behavior (taken from periscomp code): if a single
-    # dir foo/ matches, don't let completion complete and add spaces, so user
-    # can Tab several times to drill down path, which is convenient.
-    if (@res == 1 && $res[0] =~ m!/\z!) {
-        push @res, "$res[0] ";
-    }
-
     \@res;
 };
 
