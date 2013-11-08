@@ -423,6 +423,13 @@ sub catch_comp {
         common_opts => [qw/--help -h -? --verbose -v/],
         extra_completer_args => {-shell => $self},
     );
+
+    # trick to mimic shell's behavior (taken from periscomp code): if a single
+    # dir foo/ matches, don't let completion complete and add spaces, so user
+    # can Tab several times to drill down path, which is convenient.
+    if (@$res == 1 && $res->[0] =~ m!/\z!) {
+        push @$res, "$res->[0] ";
+    }
     @$res;
 }
 
@@ -469,6 +476,13 @@ sub _install_cmds {
                 common_opts => [qw/--help -h -? --verbose -v/],
                 extra_completer_args => {-shell => $self},
             );
+            # trick to mimic shell's behavior (taken from periscomp code): if a
+            # single dir foo/ matches, don't let completion complete and add
+            # spaces, so user can Tab several times to drill down path, which is
+            # convenient.
+            if (@$res == 1 && $res->[0] =~ m!/\z!) {
+                push @$res, "$res->[0] ";
+            }
             @$res;
         };
         if (@{ $meta->{"x.app.riap.aliases"} // []}) {
