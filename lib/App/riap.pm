@@ -8,6 +8,8 @@ use warnings;
 use Log::Any '$log';
 
 use parent qw(Term::Shell);
+use Moo;
+with 'SHARYANTO::Role::ColorTheme';
 
 use Data::Clean::JSON;
 use Path::Naive qw(concat_path_n);
@@ -22,7 +24,7 @@ sub new {
     require Perinci::Access;
     require URI;
 
-    my ($class, %args) = @_;
+    my ($class, $args) = @_;
 
     binmode(STDOUT, ":utf8");
 
@@ -73,6 +75,10 @@ EOT
     $self->state(server_url => $surl);
     $self->state(pwd        => $res->{path});
     $self->state(start_pwd  => $res->{path});
+
+    # set color theme
+    say "use_color=", $self->use_color;
+    $self->color_theme("Default::default");
 
     $self;
 }
@@ -250,12 +256,14 @@ sub postloop {
 
 sub prompt_str {
     my $self = shift;
-    join(
+    my $prompt = join(
         "",
-        colored("riap", "bright_blue"), " ",
-        colored($self->state("pwd"), "green"), " ",
+        $self->get_theme_color_as_ansi("path"), "riap", " ",
+        $self->state("pwd"), " ",
         "> ",
     );
+    use Data::Dump; dd $prompt;
+    $prompt;
 }
 
 sub riap_request {
