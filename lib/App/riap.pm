@@ -414,6 +414,19 @@ sub catch_run {
     );
 }
 
+# trick to mimic shell's behavior (taken from periscomp code): if a single
+# dir foo/ matches, don't let completion complete and add spaces, so user
+# can Tab several times to drill down path, which is convenient.
+sub _mimic_shell {
+    my ($self, @comp) = @_;
+
+    if (@comp == 1 && $comp[0] =~ m!/\z!) {
+        say "D1";
+        push @comp, "$comp[0] ";
+    }
+    @comp;
+}
+
 sub catch_comp {
     require Perinci::Sub::Complete;
 
@@ -438,13 +451,7 @@ sub catch_comp {
         extra_completer_args => {-shell => $self},
     );
 
-    # trick to mimic shell's behavior (taken from periscomp code): if a single
-    # dir foo/ matches, don't let completion complete and add spaces, so user
-    # can Tab several times to drill down path, which is convenient.
-    if (@$res == 1 && $res->[0] =~ m!/\z!) {
-        push @$res, "$res->[0] ";
-    }
-    @$res;
+    $self->_mimic_shell_completion(@$res);
 }
 
 my $installed = 0;
@@ -490,14 +497,7 @@ sub _install_cmds {
                 common_opts => [qw/--help -h -? --verbose -v/],
                 extra_completer_args => {-shell => $self},
             );
-            # trick to mimic shell's behavior (taken from periscomp code): if a
-            # single dir foo/ matches, don't let completion complete and add
-            # spaces, so user can Tab several times to drill down path, which is
-            # convenient.
-            if (@$res == 1 && $res->[0] =~ m!/\z!) {
-                push @$res, "$res->[0] ";
-            }
-            @$res;
+            $self->_mimic_shell_completion(@$res);
         };
         if (@{ $meta->{"x.app.riap.aliases"} // []}) {
             # XXX not yet installed by Term::Shell?
