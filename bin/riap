@@ -248,6 +248,11 @@ e.g. using:
 
 =head1 FAQ
 
+=head2 The prompt looks rather garbled (e.g. extra " m >" character)!
+
+It looks to be an issue with L<Term::ReadLine::Perl>. Try installing
+L<Term::ReadLine::Gnu> instead.
+
 =head2 How do I redirect output to files?
 
 B<riap> is meant to be a simple shell, not a full-blown Unix shell. Besides, a

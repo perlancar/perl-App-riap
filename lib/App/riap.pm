@@ -9,9 +9,10 @@ use Log::Any '$log';
 
 use parent qw(Term::Shell);
 
+use Color::ANSI::Util qw(ansifg);
 use Data::Clean::JSON;
 use Path::Naive qw(concat_path_n);
-use Term::ANSIColor;
+use Term::Detect::Software qw(detect_terminal_cached);
 
 # VERSION
 
@@ -59,6 +60,10 @@ EOT
     $self->load_history;
     $self->load_settings;
 
+    # determine color support
+    $self->{use_color} //= $ENV{COLOR} //
+        detect_terminal_cached()->{color};
+
     # set some settings from cmdline args
     $self->{_pa} //= Perinci::Access->new;
     $self->setting(user     => $opts{user})     if defined $opts{user};
@@ -75,6 +80,15 @@ EOT
     $self->state(start_pwd  => $res->{path});
 
     $self;
+}
+
+sub colorize {
+    my ($self, $text, $color) = @_;
+    if ($self->{use_color}) {
+        ansifg($color) . $text . "\e[0m";
+    } else {
+        $text;
+    }
 }
 
 sub _json_obj {
@@ -252,8 +266,8 @@ sub prompt_str {
     my $self = shift;
     join(
         "",
-        colored("riap", "bright_blue"), " ",
-        colored($self->state("pwd"), "green"), " ",
+        $self->colorize("riap", "4169e1"), " ", # royal blue
+        $self->colorize($self->state("pwd"), "2e8b57"), " ", # seagreen
         "> ",
     );
 }
