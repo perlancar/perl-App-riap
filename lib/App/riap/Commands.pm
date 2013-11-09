@@ -248,7 +248,7 @@ sub set {
             return [400,"Unknown setting, use 'set' to list all known settings"]
                 unless exists $shell->known_settings->{$name};
         }
-        for (keys %{ $shell->known_settings }) {
+        for (sort keys %{ $shell->known_settings }) {
             next if defined($name) && $_ ne $name;
             push @$res, {
                 name => $_,
@@ -288,6 +288,33 @@ sub unset {
         unless exists $shell->known_settings->{$name};
     delete $shell->{_settings}{$name};
     [200, "OK"];
+}
+
+$SPEC{show} = {
+    v => 1.1,
+    summary => "shows various things",
+    args => {
+        thing => {
+            summary    => 'Thing to show',
+            schema     => ['str*', in => [qw/settings state/]],
+            req        => 1,
+            pos        => 0,
+        },
+    },
+};
+sub show {
+    my %args = @_;
+    my $shell = $args{-shell};
+
+    my $thing = $args{thing};
+
+    if ($thing eq 'settings') {
+        return set(-shell=>$shell);
+    } elsif ($thing eq 'state') {
+        [200, "OK", $shell->{_state}];
+    } else {
+        [400, "Invalid argument for show"];
+    }
 }
 
 1;
