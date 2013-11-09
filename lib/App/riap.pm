@@ -379,7 +379,9 @@ sub comp_ {
     }
     #use Data::Dump; dd \@res;
 
-    @{ SHARYANTO::Complete::Util::complete_array(array=>\@res, word=>$word0) };
+    $self->_mimic_shell_completion(@{
+        SHARYANTO::Complete::Util::complete_array(array=>\@res, word=>$word0)
+      });
 }
 
 sub catch_run {
@@ -417,11 +419,10 @@ sub catch_run {
 # trick to mimic shell's behavior (taken from periscomp code): if a single
 # dir foo/ matches, don't let completion complete and add spaces, so user
 # can Tab several times to drill down path, which is convenient.
-sub _mimic_shell {
+sub _mimic_shell_completion {
     my ($self, @comp) = @_;
 
     if (@comp == 1 && $comp[0] =~ m!/\z!) {
-        say "D1";
         push @comp, "$comp[0] ";
     }
     @comp;
