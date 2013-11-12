@@ -10,13 +10,14 @@ use App::riap;
 
 my $shell = App::riap->new;
 
-# currently doesn't work, because we are in readline?
-#$SIG{INT} = sub {
-#    # save history when we are interrupted
-#    $shell->save_history;
-#    die "Interrupted\n";
-#};
+$SIG{INT} = sub {
+    # save history when we are interrupted
+    $shell->save_history;
+    print STDERR "Interrupted\n";
+    exit 1;
+};
 
+local $Signal::Safety = 0; # limit the use of unsafe signals
 $shell->cmdloop;
 
 1;

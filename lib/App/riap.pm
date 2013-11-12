@@ -82,6 +82,54 @@ EOT
     $self;
 }
 
+# override, readline workarounds
+sub cmdloop {
+    require IO::Stty;
+    require Signal::Safety;
+
+    my $o = shift;
+    my $rl = $o->{term};
+
+    local $SIG{INT} = sub {
+        # save history when we are interrupted
+        $o->save_history;
+        print STDERR "Interrupted\n";
+        if ($rl->ReadLine eq 'Term::ReadLine::Gnu') {
+            IO::Stty::stty(\*STDIN, 'echo');
+        }
+        exit 1;
+    };
+
+    # some workaround for Term::ReadLine
+    # say "D0, rl=", $rl->ReadLine;
+    if ($rl->ReadLine eq 'Term::ReadLine::Gnu') {
+        # TR::Gnu traps our INT handler
+        # ref: http://www.perlmonks.org/?node_id=1003497
+        my $attribs = $rl->Attribs;
+        $attribs->{catch_signals} = 0;
+    } elsif ($rl->ReadLine eq 'Term::ReadLine::Perl') {
+        # TR::Perl messes up colors
+        $rl->ornaments(0);
+    }
+
+    $o->{stop} = 0;
+    $o->preloop;
+    while (1) {
+        my $line;
+        {
+            no warnings 'once';
+            local $Signal::Safety = 0; # limit the use of unsafe signals
+            $line = $o->readline($o->prompt_str);
+        }
+        last unless defined($line);
+        $o->cmd($line);
+        last if $o->{stop};
+    }
+    $o->postloop;
+}
+
+sub mainloop { goto \&cmdloop }
+
 sub colorize {
     my ($self, $text, $color) = @_;
     if ($self->{use_color}) {
