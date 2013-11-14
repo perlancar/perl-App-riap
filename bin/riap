@@ -10,14 +10,6 @@ use App::riap;
 
 my $shell = App::riap->new;
 
-$SIG{INT} = sub {
-    # save history when we are interrupted
-    $shell->save_history;
-    print STDERR "Interrupted\n";
-    exit 1;
-};
-
-local $Signal::Safety = 0; # limit the use of unsafe signals
 $shell->cmdloop;
 
 1;
@@ -240,19 +232,33 @@ details.
 
 Whether to show raw Riap requests being sent to the server.
 
-Note: since B<riap> uses L<Perinci::Access>, you can show the log statement,
-e.g. using:
+Note: since B<riap> uses L<Perinci::Access>, you can also achieve the same thing
+via:
 
  % TRACE=1 LOG_RIAP_REQUEST=1 perl -MLog::Any::App /path/to/riap ...
+
+=head2 debug_show_request_for_completion => bool (default: 0)
+
+Even though C<debug_show_request> setting is turned on, to see Riap requests
+sent when doing Tab completion, you need to turn on this setting. This setting
+is separated because showing logs during Tab completion is rather interfering,
+visually.
 
 =head2 debug_show_response => bool (default: 0)
 
 Whether to show raw Riap responses returned by the server.
 
-Note: since B<riap> uses L<Perinci::Access>, you can show the log statement,
-e.g. using:
+Note: since B<riap> uses L<Perinci::Access>, you can also achieve the same thing
+via:
 
  % TRACE=1 LOG_RIAP_RESPONSE=1 perl -MLog::Any::App /path/to/riap ...
+
+=head2 debug_show_response_for_completion => bool (default: 0)
+
+Even though C<debug_show_response> setting is turned on, to see Riap responses
+returned by server when doing Tab completion, you need to turn on this setting.
+This setting is separated because showing logs during Tab completion is rather
+interfering, visually.
 
 
 =head1 FAQ

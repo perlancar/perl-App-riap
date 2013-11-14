@@ -181,6 +181,20 @@ sub known_settings {
                 summary => 'Whether to display raw Riap responses from server',
                 schema  => ['bool', default=>0],
             },
+            debug_show_request_for_completion => {
+                summary => 'Like debug_show_request but when doing '.
+                    'Tab completion',
+                schema  => ['bool', default=>0],
+            },
+            debug_show_response => {
+                summary => 'Whether to display raw Riap responses from server',
+                schema  => ['bool', default=>0],
+            },
+            debug_show_response_for_completion => {
+                summary => 'Like debug_show_response but when doing '.
+                    'Tab completion',
+                schema  => ['bool', default=>0],
+            },
             output_format => {
                 summary => 'Output format for command (e.g. yaml, json, text)',
                 schema  => ['str*', {
@@ -320,18 +334,28 @@ sub prompt_str {
     );
 }
 
+our $_in_completion;
 sub riap_request {
     my ($self, $action, $uri, $extra) = @_;
     my $copts = {
         user     => $self->setting('user'),
         password => $self->setting('password'),
     };
-    if ($self->setting("debug_show_request")) {
+    my $show;
+
+    $show = $_in_completion ?
+        $self->setting("debug_show_request_for_completion") :
+            $self->setting("debug_show_request");
+    if ($show) {
         say "DEBUG: Riap request: ".
             $self->json_encode({action=>$action, uri=>$uri, %{$extra // {}}});
     }
     my $res = $self->{_pa}->request($action, $uri, $extra, $copts);
-    if ($self->setting("debug_show_request")) {
+
+    $show = $_in_completion ?
+        $self->setting("debug_show_response_for_completion") :
+            $self->setting("debug_show_response");
+    if ($show) {
         say "DEBUG: Riap response: ".$self->json_encode($res);
     }
     $res;
@@ -405,6 +429,8 @@ sub comp_ {
 
     my $self = shift;
     my ($cmd, $word0, $line, $start) = @_;
+
+    local $_in_completion = 1;
 
     my @res = ("help", "exit");
     push @res, keys %App::riap::Commands::SPEC;
@@ -482,6 +508,8 @@ sub catch_comp {
     my $self = shift;
     my ($cmd, $word, $line, $start) = @_;
 
+    local $_in_completion = 1;
+
     my $pwd = $self->state("pwd");
     my $uri = concat_path_n($pwd, $cmd);
     my $res = $self->riap_request(info => $uri);
@@ -539,6 +567,7 @@ sub _install_cmds {
 
             my $self = shift;
             my ($word, $line, $start) = @_;
+            local $_in_completion = 1;
             local $ENV{COMP_LINE} = $line;
             local $ENV{COMP_POINT} = $start + length($word);
             my $res = Perinci::Sub::Complete::shell_complete_arg(
