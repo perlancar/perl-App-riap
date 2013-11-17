@@ -70,24 +70,20 @@ $SPEC{ls} = {
         long => {
             summary => 'Long mode (detail=1)',
             schema => ['bool'],
-            cmdline_aliases => {
-                l => {},
-            },
+            cmdline_aliases => { l => {} },
         },
-        # XXX temporarily use single path instead of multipl, periscomp can't
-        # handle it
-
+        # completion acts a bit weird, so we use single path atm
         #paths => {
         #    summary    => 'Path(s) (URIs) to list',
         #    schema     => ['array*' => 'of' => 'str*'],
         #    req        => 0,
         #    pos        => 0,
         #    greedy     => 1,
-        #    completion => $complete_file_or_dir,
+        #    element_completion => $complete_file_or_dir,
         #},
         path => {
             summary    => 'Path (URI) to list',
-            schema     => 'str*',
+            schema     => ['str*'],
             req        => 0,
             pos        => 0,
             completion => $complete_file_or_dir,
@@ -101,32 +97,36 @@ sub ls {
 
     my $extra = {}; $extra->{detail} = 1 if $args{long};
     my $pwd = $shell->state("pwd");
-    my $path = $args{path};
     my $uri;
     my ($dir, $leaf);
 
-    $uri = $pwd . ($pwd =~ m!/\z! ? "" : "/");
-    if (defined $path) {
-        ($dir, $leaf) = $path =~ m!(.*/)?(.*)!;
-        $dir //= "";
-        if (length $dir) {
-            $uri = concat_path_n($pwd, $dir);
-            $uri .= ($uri =~ m!/\z! ? "" : "/");
+    my @allres;
+    #for my $path (@{ $args{paths} // [undef] }) {
+    for my $path ($args{path}) {
+        $uri = $pwd . ($pwd =~ m!/\z! ? "" : "/");
+        if (defined $path) {
+            ($dir, $leaf) = $path =~ m!(.*/)?(.*)!;
+            $dir //= "";
+            if (length $dir) {
+                $uri = concat_path_n($pwd, $dir);
+                $uri .= ($uri =~ m!/\z! ? "" : "/");
+            }
+        }
+
+        my $res = $shell->riap_request(list => $uri, $extra);
+        return $res unless $res->[0] == 200;
+        if (!@{$res->[2]} && defined($leaf) && length($leaf)) {
+            return [404, "No such file (Riap entity): $path"];
+        }
+
+        for (@{ $res->[2] }) {
+            my $u = $args{long} ? $_->{uri} : $_;
+            next if defined($leaf) && length($leaf) &&
+                $u !~ m!.+/\Q$leaf\E/?\z!;
+            push @allres, $_;
         }
     }
-    my $res = $shell->riap_request(list => $uri, $extra);
-
-    my @res;
-    for (@{ $res->[2] }) {
-        my $u = $args{long} ? $_->{uri} : $_;
-        next if defined($leaf) && length($leaf) && $u !~ m!.+/\Q$leaf\E/?\z!;
-        push @res, $_;
-    }
-    if (!@res && defined($leaf)) {
-        return [404, "No such entity"];
-    }
-    $res->[2] = \@res;
-    [200, "OK", \@res];
+    [200, "OK", \@allres];
 }
 
 $SPEC{pwd} = {
@@ -181,7 +181,11 @@ sub cd {
     # check if path actually exists
     my $uri = $npwd . ($npwd =~ m!/\z! ? "" : "/");
     my $res = $shell->riap_request(info => $uri);
-    return $res if $res->[0] != 200;
+    if ($res->[0] == 404) {
+        return [404, "No such directory (Riap package)"];
+    } elsif ($res->[0] != 200) {
+        return $res;
+    }
     #return [403, "Not a directory (package)"]
     #    unless $res->[2]{type} eq 'package';
 
@@ -315,6 +319,114 @@ sub show {
     } else {
         [400, "Invalid argument for show"];
     }
+}
+
+$SPEC{req} = {
+    v => 1.1,
+    summary => 'performs action on file/dir (Riap entity)',
+    args => {
+        action => {
+            summary => 'Action name',
+            schema => ['str*'],
+            req    => 1,
+            pos    => 0,
+            cmdline_aliases => { a => {} },
+        },
+        uri => {
+            summary    => 'Path (entity URI)',
+            schema     => 'str*',
+            req        => 1,
+            pos        => 1,
+            completion => $complete_file_or_dir,
+        },
+        extra => {
+            summary    => 'Extra Riap request keys',
+            schema     => 'hash*',
+            pos        => 2,
+        },
+    },
+};
+sub req {
+    my %args = @_;
+    my $shell = $args{-shell};
+
+    my $action = $args{action};
+    my $uri    = $args{uri};
+    my $extra  = $args{extra} // {};
+
+    $shell->riap_request($action => $uri, $extra);
+}
+
+$SPEC{meta} = {
+    v => 1.1,
+    summary => 'performs meta action on file/dir (Riap entity)',
+    args => {
+        uri => {
+            summary    => 'Path (entity URI)',
+            schema     => 'str*',
+            req        => 1,
+            pos        => 0,
+            completion => $complete_file_or_dir,
+        },
+    },
+};
+sub meta {
+    my %args = @_;
+    my $shell = $args{-shell};
+
+    my $uri    = $args{uri};
+
+    $shell->riap_request(meta => $uri);
+}
+
+$SPEC{info} = {
+    v => 1.1,
+    summary => 'performs info action on file/dir (Riap entity)',
+    args => {
+        uri => {
+            summary    => 'Path (entity URI)',
+            schema     => 'str*',
+            req        => 1,
+            pos        => 0,
+            completion => $complete_file_or_dir,
+        },
+    },
+};
+sub info {
+    my %args = @_;
+    my $shell = $args{-shell};
+
+    my $uri    = $args{uri};
+
+    $shell->riap_request(info => $uri);
+}
+
+$SPEC{call} = {
+    v => 1.1,
+    summary => 'performs call action on file (Riap function)',
+    args => {
+        uri => {
+            summary    => 'Path to file (Riap function)',
+            schema     => 'str*',
+            req        => 1,
+            pos        => 0,
+            completion => $complete_file_or_dir,
+        },
+        args => {
+            summary    => 'Arguments to pass to function',
+            schema     => 'hash*',
+            pos        => 1,
+        },
+    },
+};
+sub call {
+    my %args = @_;
+    my $shell = $args{-shell};
+
+    my $uri    = $args{uri};
+    my $args   = $args{args} // {};
+
+    $shell->riap_request(call => $uri, {args=>$args});
 }
 
 1;

@@ -12,6 +12,7 @@ use parent qw(Term::Shell);
 use Color::ANSI::Util qw(ansifg);
 use Data::Clean::JSON;
 use Path::Naive qw(concat_path_n);
+use Perinci::Sub::Util qw(err);
 use Term::Detect::Software qw(detect_terminal_cached);
 
 # VERSION
@@ -78,6 +79,7 @@ EOT
     $self->state(server_url => $surl);
     $self->state(pwd        => $res->{path});
     $self->state(start_pwd  => $res->{path});
+    $self->run_cd($res->{path});
 
     $self;
 }
@@ -100,16 +102,23 @@ sub cmdloop {
         exit 1;
     };
 
+    local $SIG{__DIE__} = sub {
+        IO::Stty::stty(\*STDIN, 'echo');
+        die @_;
+    };
+
     # some workaround for Term::ReadLine
     # say "D0, rl=", $rl->ReadLine;
+    my $attribs = $rl->Attribs;
     if ($rl->ReadLine eq 'Term::ReadLine::Gnu') {
         # TR::Gnu traps our INT handler
         # ref: http://www.perlmonks.org/?node_id=1003497
-        my $attribs = $rl->Attribs;
         $attribs->{catch_signals} = 0;
     } elsif ($rl->ReadLine eq 'Term::ReadLine::Perl') {
         # TR::Perl messes up colors
-        $rl->ornaments(0);
+        # doesn't do anything?
+        #$rl->ornaments(0);
+        #$attribs->{term_set} = ["", "", "", ""];
     }
 
     $o->{stop} = 0;
@@ -458,6 +467,14 @@ sub comp_ {
       });
 }
 
+sub _err {
+    require Perinci::Result::Format;
+
+    my $self = shift;
+
+    print Perinci::Result::Format::format($_[0], "text");
+}
+
 sub catch_run {
     my $self = shift;
     my ($cmd, @argv) = @_;
@@ -466,18 +483,23 @@ sub catch_run {
     my $uri = concat_path_n($pwd, $cmd);
     my $res = $self->riap_request(info => $uri);
     if ($res->[0] == 404) {
-        return [404, "No such command or executable"];
-    } elsif ($res->[0] != 200) {
-        return $res;
-    }
-    do {
-        say "ERROR: Not an executable (Riap function)";
+        $self->_err([404, "No such command or executable (Riap function)"]);
         return;
-    } unless $res->[2]{type} eq 'function';
+    } elsif ($res->[0] != 200) {
+        $self->_err($res);
+        return;
+    }
+    unless ($res->[2]{type} eq 'function') {
+        $self->_err([412, "Not an executable (Riap function)"]);
+        return;
+    }
     my $name = $res->[2]{uri}; $name =~ s!.+/!!;
 
     $res = $self->riap_request(meta => $uri);
-    return $res unless $res->[0] == 200;
+    if ($res->[0] != 200) {
+        $self->_err(err(500, "Can't get meta", $res));
+        return;
+    }
     my $meta = $res->[2];
 
     $self->_run_cmd(
