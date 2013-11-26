@@ -34,7 +34,7 @@ sub new {
             print <<'EOT';
 Usage:
   riap --help
-  riap [opts] [URI]
+  riap [opts] [server-uri]
 
 Options:
   --help        Show this help message
@@ -333,21 +333,26 @@ sub prompt_str {
 
 our $_in_completion;
 sub riap_request {
-    my ($self, $action, $uri, $extra) = @_;
+    my ($self, $action, $uri, $extra0) = @_;
     my $copts = {
         user     => $self->setting('user'),
         password => $self->setting('password'),
     };
-    my $show;
 
-    $show = $_in_completion ?
+    my $surl = $self->state('server_url');
+
+    my $extra = { %{ $extra0 // {} } };
+    $extra->{uri} = $uri;
+
+    my $show = $_in_completion ?
         $self->setting("debug_riap") && $self->setting("debug_completion") :
             $self->setting("debug_riap");
+
     if ($show) {
-        say "DEBUG: Riap request: ".
-            $self->json_encode({action=>$action, uri=>$uri, %{$extra // {}}});
+        say "DEBUG: Riap request: $action => $surl ".
+            $self->json_encode($extra);
     }
-    my $res = $self->{_pa}->request($action, $uri, $extra, $copts);
+    my $res  = $self->{_pa}->request($action, $surl, $extra, $copts);
     if ($show) {
         say "DEBUG: Riap response: ".$self->json_encode($res);
     }
