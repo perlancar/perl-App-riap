@@ -332,7 +332,7 @@ $SPEC{req} = {
             pos    => 0,
             cmdline_aliases => { a => {} },
         },
-        uri => {
+        path => {
             summary    => 'Path (entity URI)',
             schema     => 'str*',
             req        => 1,
@@ -351,7 +351,9 @@ sub req {
     my $shell = $args{-shell};
 
     my $action = $args{action};
-    my $uri    = $args{uri};
+    my $pwd    = $shell->state("pwd");
+    my $path   = $args{path};
+    my $uri    = concat_path_n($pwd, $path);
     my $extra  = $args{extra} // {};
 
     $shell->riap_request($action => $uri, $extra);
@@ -361,8 +363,8 @@ $SPEC{meta} = {
     v => 1.1,
     summary => 'performs meta action on file/dir (Riap entity)',
     args => {
-        uri => {
-            summary    => 'Path (entity URI)',
+        path => {
+            summary    => 'Path (URI)',
             schema     => 'str*',
             req        => 1,
             pos        => 0,
@@ -374,7 +376,9 @@ sub meta {
     my %args = @_;
     my $shell = $args{-shell};
 
-    my $uri    = $args{uri};
+    my $pwd  = $shell->state("pwd");
+    my $path = $args{path};
+    my $uri  = concat_path_n($pwd, $path);
 
     $shell->riap_request(meta => $uri);
 }
@@ -383,7 +387,7 @@ $SPEC{info} = {
     v => 1.1,
     summary => 'performs info action on file/dir (Riap entity)',
     args => {
-        uri => {
+        path => {
             summary    => 'Path (entity URI)',
             schema     => 'str*',
             req        => 1,
@@ -396,7 +400,9 @@ sub info {
     my %args = @_;
     my $shell = $args{-shell};
 
-    my $uri    = $args{uri};
+    my $pwd  = $shell->state("pwd");
+    my $path = $args{path};
+    my $uri  = concat_path_n($pwd, $path);
 
     $shell->riap_request(info => $uri);
 }
@@ -405,7 +411,7 @@ $SPEC{call} = {
     v => 1.1,
     summary => 'performs call action on file (Riap function)',
     args => {
-        uri => {
+        path => {
             summary    => 'Path to file (Riap function)',
             schema     => 'str*',
             req        => 1,
@@ -423,8 +429,10 @@ sub call {
     my %args = @_;
     my $shell = $args{-shell};
 
-    my $uri    = $args{uri};
-    my $args   = $args{args} // {};
+    my $pwd  = $shell->state("pwd");
+    my $path = $args{path};
+    my $uri  = concat_path_n($pwd, $path);
+    my $args = $args{args};
 
     $shell->riap_request(call => $uri, {args=>$args});
 }
