@@ -164,7 +164,9 @@ sub json_decode {
 
 sub json_encode {
     my ($self, $arg) = @_;
-    $self->_json_obj->encode($cleanser->clone_and_clean($arg));
+    my $data = $cleanser->clone_and_clean($arg);
+    #use Data::Dump; dd $data;
+    $self->_json_obj->encode($data);
 }
 
 sub settings_filename {
@@ -182,26 +184,12 @@ sub known_settings {
     if (!$settings) {
         require Perinci::Result::Format;
         $settings = {
-            debug_show_request => {
-                summary => 'Whether to display raw Riap requests being sent',
+            debug_riap => {
+                summary => 'Whether to display raw Riap requests/responses',
                 schema  => ['bool', default=>0],
             },
-            debug_show_response => {
-                summary => 'Whether to display raw Riap responses from server',
-                schema  => ['bool', default=>0],
-            },
-            debug_show_request_for_completion => {
-                summary => 'Like debug_show_request but when doing '.
-                    'Tab completion',
-                schema  => ['bool', default=>0],
-            },
-            debug_show_response => {
-                summary => 'Whether to display raw Riap responses from server',
-                schema  => ['bool', default=>0],
-            },
-            debug_show_response_for_completion => {
-                summary => 'Like debug_show_response but when doing '.
-                    'Tab completion',
+            debug_completion => {
+                summary => 'Whether to display debugging for tab completion',
                 schema  => ['bool', default=>0],
             },
             output_format => {
@@ -353,17 +341,13 @@ sub riap_request {
     my $show;
 
     $show = $_in_completion ?
-        $self->setting("debug_show_request_for_completion") :
-            $self->setting("debug_show_request");
+        $self->setting("debug_riap") && $self->setting("debug_completion") :
+            $self->setting("debug_riap");
     if ($show) {
         say "DEBUG: Riap request: ".
             $self->json_encode({action=>$action, uri=>$uri, %{$extra // {}}});
     }
     my $res = $self->{_pa}->request($action, $uri, $extra, $copts);
-
-    $show = $_in_completion ?
-        $self->setting("debug_show_response_for_completion") :
-            $self->setting("debug_show_response");
     if ($show) {
         say "DEBUG: Riap response: ".$self->json_encode($res);
     }
@@ -462,9 +446,13 @@ sub comp_ {
     }
     #use Data::Dump; dd \@res;
 
-    $self->_mimic_shell_completion(@{
+    my @comp = $self->_mimic_shell_completion(@{
         SHARYANTO::Complete::Util::complete_array(array=>\@res, word=>$word0)
       });
+    if ($self->setting("debug_completion")) {
+        say "DEBUG: Completion: ".join(", ", @comp);
+    }
+    @comp;
 }
 
 sub _err {
@@ -597,7 +585,11 @@ sub _install_cmds {
                 common_opts => [qw/--help -h -? --verbose -v/],
                 extra_completer_args => {-shell => $self},
             );
-            $self->_mimic_shell_completion(@$res);
+            my @comp = $self->_mimic_shell_completion(@$res);
+            if ($self->setting('debug_completion')) {
+                say "DEBUG: Completion: ".join(", ", @comp);
+            }
+            @comp;
         };
         if (@{ $meta->{"x.app.riap.aliases"} // []}) {
             # XXX not yet installed by Term::Shell?
