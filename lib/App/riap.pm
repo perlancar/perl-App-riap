@@ -72,14 +72,14 @@ EOT
 
     # determine starting pwd
     my $pwd;
-    my $surl = URI->new($ARGV[0] // "pl:/");
-    $surl->scheme('pl') if !$surl->scheme;
+    my $surl = URI->new($ARGV[0] // "/");
+    $self->state(server_url => $surl);
     my $res = $self->{_pa}->parse_url($surl);
     die "Can't parse url $surl\n" unless $res;
-    $self->state(server_url => $surl);
-    $self->state(pwd        => $res->{path});
-    $self->state(start_pwd  => $res->{path});
-    $self->run_cd($res->{path});
+    $pwd = $res->{path};
+    $self->state(pwd        => $pwd);
+    $self->state(start_pwd  => $pwd);
+    $self->run_cd($pwd);
 
     $self;
 }
