@@ -13,7 +13,7 @@ my $shell = App::riap->new;
 $shell->cmdloop;
 
 1;
-# ABSTRACT: Riap client shell
+# ABSTRACT: Riap command-line client shell
 # PODNAME: riap
 
 =head1 SYNOPSIS
@@ -49,10 +49,10 @@ An example session:
  plan/
  ...
 
- riap> cd account/shared
+ riap> cd account/shared/query
 
  riap> pwd
- /spanel/api/account/shared/modify
+ /spanel/api/account/shared/query
 
  riap> ls -l
  create_account     function
@@ -68,7 +68,7 @@ An example session:
  devi
  steven
 
- riap> ./delete_account --help
+ riap> ../modify/delete_account --help
 
  riap> exit
 

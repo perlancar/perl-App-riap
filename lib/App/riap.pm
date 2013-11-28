@@ -606,7 +606,7 @@ sub _install_cmds {
 }
 
 1;
-# ABSTRACT: Implementation for the riap command-line shell
+# ABSTRACT: Riap command-line client shell
 
 =for Pod::Coverage ^(.+)$
 
