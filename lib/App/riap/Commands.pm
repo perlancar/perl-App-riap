@@ -115,16 +115,16 @@ sub ls {
 
         my $res = $shell->riap_request(list => $uri, $extra);
         return $res unless $res->[0] == 200;
-        if (!@{$res->[2]} && defined($leaf) && length($leaf)) {
+        for (@{ $res->[2] }) {
+            my $u = $args{long} ? $_->{uri} : $_;
+            next if defined($leaf) && length($leaf) && $u ne $leaf;
+            push @allres, $_;
+        }
+
+        if (!@allres && defined($leaf) && length($leaf)) {
             return [404, "No such file (Riap entity): $path"];
         }
 
-        for (@{ $res->[2] }) {
-            my $u = $args{long} ? $_->{uri} : $_;
-            next if defined($leaf) && length($leaf) &&
-                $u !~ m!.+/\Q$leaf\E/?\z!;
-            push @allres, $_;
-        }
     }
     [200, "OK", \@allres];
 }
