@@ -131,6 +131,10 @@ Supply HTTP authentication password. You can also set this via environment
 L<PERINCI_HTTP_PASSWORD> (see L<Perinci::Access> for more details) or from
 inside the shell via C<< set password <S> >>.
 
+Using the command-line option is not recommended because of security issue
+(command-line commands/arguments are usually visible to all users on the system
+via commands like B<ps>).
+
 =back
 
 
@@ -305,6 +309,18 @@ and then write:
 
 
 =head1 ENVIRONMENT
+
+=head2 PERINCI_HTTP_USER => str
+
+If set, can be used to set C<user> setting (but priority lower than command-line
+option C<--user>).
+
+=head2 PERINCI_HTTP_PASSWORD => str
+
+If set, can be used to set C<password> setting (but priority lower than
+command-line option C<--password>). This is usually more secure to use than
+command-line option, because command-line option is usually visible from all
+users on the system via commands like C<ps>.
 
 =head2 RIAP_HISTFILE => str (default: C<~/.riap_history>)
 

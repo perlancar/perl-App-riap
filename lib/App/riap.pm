@@ -37,9 +37,9 @@ Usage:
   riap [opts] [server-uri]
 
 Options:
-  --help        Show this help message
-  --user=S      Supply HTTP authentication user
-  --password=S  Supply HTTP authentication password
+  --help            Show this help message
+  --user=S, -u      Supply HTTP authentication user
+  --password=S, -p  Supply HTTP authentication password
 
 Examples:
   % riap
@@ -49,8 +49,8 @@ For more help, see the manpage.
 EOT
                 exit 0;
         },
-        "user=s"     => \$opts{user},
-        "password=s" => \$opts{password},
+        "user|u=s"     => \$opts{user},
+        "password|p=s" => \$opts{password},
     );
     my $old_go_opts = Getopt::Long::Configure();
     Getopt::Long::GetOptions(@gospec);
@@ -59,13 +59,18 @@ EOT
     $class->_install_cmds;
     my $self = $class->SUPER::new();
     $self->load_history;
+
+    # load from file
     $self->load_settings;
+
+    # override some settings from env, if available
+    # ...
 
     # determine color support
     $self->{use_color} //= $ENV{COLOR} //
         detect_terminal_cached()->{color};
 
-    # set some settings from cmdline args
+    # override some settings from cmdline args, if defined
     $self->{_pa} //= Perinci::Access->new;
     $self->setting(user     => $opts{user})     if defined $opts{user};
     $self->setting(password => $opts{password}) if defined $opts{password};
