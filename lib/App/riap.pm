@@ -66,6 +66,8 @@ EOT
     # override some settings from env, if available
     # ...
 
+    $self->{_in_completion} = 0;
+
     # determine color support
     $self->{use_color} //= $ENV{COLOR} //
         detect_terminal_cached()->{color};
@@ -204,6 +206,11 @@ sub known_settings {
                     default=>'text',
                 }],
             },
+            meta_cache_period => {
+                summary => 'Number of seconds to cache Riap meta results '.
+                    'from server, to speed up tab completion',
+                schema => ['int*', default=>300],
+            },
             password => {
                 summary => 'For HTTP authentication to server',
                 schema  => 'str*',
@@ -336,7 +343,6 @@ sub prompt_str {
     );
 }
 
-our $_in_completion;
 sub riap_request {
     my ($self, $action, $uri, $extra0) = @_;
     my $copts = {
@@ -349,7 +355,7 @@ sub riap_request {
     my $extra = { %{ $extra0 // {} } };
     $extra->{uri} = $uri;
 
-    my $show = $_in_completion ?
+    my $show = $self->{_in_completion} ?
         $self->setting("debug_riap") && $self->setting("debug_completion") :
             $self->setting("debug_riap");
 
@@ -433,7 +439,7 @@ sub comp_ {
     my $self = shift;
     my ($cmd, $word0, $line, $start) = @_;
 
-    local $_in_completion = 1;
+    local $self->{_in_completion} = 1;
 
     my @res = ("help", "exit");
     push @res, keys %App::riap::Commands::SPEC;
@@ -528,7 +534,7 @@ sub catch_comp {
     my $self = shift;
     my ($cmd, $word, $line, $start) = @_;
 
-    local $_in_completion = 1;
+    local $self->{_in_completion} = 1;
 
     my $pwd = $self->state("pwd");
     my $uri = concat_path_n($pwd, $cmd);
@@ -587,7 +593,7 @@ sub _install_cmds {
 
             my $self = shift;
             my ($word, $line, $start) = @_;
-            local $_in_completion = 1;
+            local $self->{_in_completion} = 1;
             local $ENV{COMP_LINE} = $line;
             local $ENV{COMP_POINT} = $start + length($word);
             my $res = Perinci::Sub::Complete::shell_complete_arg(
