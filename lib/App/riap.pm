@@ -35,10 +35,12 @@ sub new {
             print <<'EOT';
 Usage:
   riap --help
+  riap --version, -v
   riap [opts] [server-uri]
 
 Options:
   --help            Show this help message
+  --version, -v     Show version and exit
   --user=S, -u      Supply HTTP authentication user
   --password=S, -p  Supply HTTP authentication password
 
@@ -49,6 +51,10 @@ Examples:
 For more help, see the manpage.
 EOT
                 exit 0;
+        },
+        "version|v"    => sub {
+            say "riap version " . ($App::riap::VERSION // "dev");
+            exit 0;
         },
         "user|u=s"     => \$opts{user},
         "password|p=s" => \$opts{password},
