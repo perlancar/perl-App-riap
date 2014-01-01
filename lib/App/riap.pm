@@ -20,6 +20,7 @@ use Term::Detect::Software qw(detect_terminal_cached);
 my $cleanser = Data::Clean::JSON->get_cleanser;
 
 sub new {
+    require CHI;
     require Getopt::Long;
     require Perinci::Access;
     require URI;
@@ -67,6 +68,9 @@ EOT
     # ...
 
     $self->{_in_completion} = 0;
+
+    # for now we don't impose cache size limit
+    $self->{_cache} = CHI->new(driver=>'Memory', global=>1);
 
     # determine color support
     $self->{use_color} //= $ENV{COLOR} //
@@ -206,9 +210,9 @@ sub known_settings {
                     default=>'text',
                 }],
             },
-            meta_cache_period => {
-                summary => 'Number of seconds to cache Riap meta results '.
-                    'from server, to speed up tab completion',
+            cache_period => {
+                summary => 'Number of seconds to cache Riap results '.
+                    'from server, to speed up things like tab completion',
                 schema => ['int*', default=>300],
             },
             password => {
@@ -363,9 +367,27 @@ sub riap_request {
         say "DEBUG: Riap request: $action => $surl ".
             $self->json_encode($extra);
     }
-    my $res  = $self->{_pa}->request($action, $surl, $extra, $copts);
-    if ($show) {
-        say "DEBUG: Riap response: ".$self->json_encode($res);
+    my $res;
+    my $cache_key = $self->json_encode({action=>$action, %$extra});
+    # we only want to cache some actions
+    if ($action =~ /\A(info|list|meta)\z/ &&
+            ($res = $self->{_cache}->get($cache_key))) {
+        # cache hit
+        if ($show) {
+            say "DEBUG: Riap response (from cache): $action => $surl ".
+                $res;
+        }
+        $res = $self->json_decode($res);
+    } else {
+        # cache miss, get from server
+        $res  = $self->{_pa}->request($action, $surl, $extra, $copts);
+        if ($show) {
+            say "DEBUG: Riap response: ".$self->json_encode($res);
+        }
+        if ($self->setting('cache_period')) {
+            $self->{_cache}->set($cache_key, $self->json_encode($res),
+                                 $self->setting('cache_period')." s");
+        }
     }
     $res;
 }
