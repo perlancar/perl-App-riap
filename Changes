@@ -1,20 +1,41 @@
 Revision history for App-Riap
 
+0.03     2014-01-01 (SHARYANTO)
+
+         [ENHANCEMENTS]
+
+         - Cache some Riap results like meta/info/list to speed up tab
+           completion, help, ls.
+
+         - Alias -u for --user, -p for --password; document about
+           PERINCI_HTTP_{USER,PASSWORD}
+
+         [BUG FIXES]
+
+         - if 'ls' command mentions path, error 404 if there are no matches.
+
+
 0.02     2013-11-27 (SHARYANTO)
+
+         [BUG FIXES]
 
          - Fix Riap requesting so it works with Riap::HTTP, etc.
 
          - Fix tab completion on path so it mimics shell better (no space
            automatically added after a match on dir).
 
+         [ENHANCEMENTS]
+
          - Add commands: show, req, meta, info, call.
 
          - Save command history even though we are interrupted.
 
-         - Change setting debug_show_{request,response} to debug_riap.
-
          - Add setting: debug_completion to show Riap requests for completion as
            well as completion alternatives.
+
+         [INCOMPATIBLE CHANGES]
+
+         - Change setting debug_show_{request,response} to debug_riap.
 
 
 0.01     2013-11-06 (SHARYANTO)
