@@ -430,6 +430,7 @@ sub _run_cmd {
     my $opt_verbose;
 
     my $res;
+  RUN:
     {
         $res = Perinci::Sub::GetArgs::Argv::get_args_from_argv(
             argv => $args{argv},
@@ -441,7 +442,12 @@ sub _run_cmd {
                 'verbose|v' => \$opt_verbose,
             ],
         );
-        last unless $res->[0] == 200;
+        if ($res->[0] == 502) {
+            # try sending argv to the server because we can't seem to parse it
+            $res = $args{code_argv}->(@{ $args{argv} });
+            last RUN;
+        }
+        last RUN if $res->[0] != 200;
 
         if ($opt_help) {
             $self->_help_cmd(name=>$cmd, meta=>$args{meta});
@@ -540,6 +546,9 @@ sub catch_run {
             my %args = @_;
             delete $args{-shell};
             $self->riap_request(call => $uri, {args=>\%args});
+        },
+        code_argv=>sub {
+            $self->riap_request(call => $uri, {argv=>\@_});
         },
     );
 }
