@@ -1,5 +1,17 @@
 Revision history for App-Riap
 
+0.04     2014-04-16 (SHARYANTO)
+
+         - Pass 'argv' to the server if parsing it on the client side returns
+           502. This can happen when coderefs in cmdline_aliases in metadata got
+           converted into string 'CODE' due to having to be transported via JSON
+           from the server side (Riap::HTTP/Riap::Simple). This also requires a
+           recent version of Perinci::Access::Perl (0.64) on the server side,
+           which supports accepting 'argv' request key for the 'call' action.
+
+         - Add -v (version).
+
+
 0.03     2014-01-01 (SHARYANTO)
 
          [ENHANCEMENTS]
