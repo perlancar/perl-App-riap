@@ -152,8 +152,8 @@ sub cmdloop {
         my $time1 = time();
         $o->cmd($line);
         my $time2 = time();
-        if ($self->setting('debug_time_command')) {
-            say "%.3fs", ($time2-$time1);
+        if ($o->setting('debug_time_command')) {
+            say sprintf("  %.3fs", ($time2-$time1));
         }
         last if $o->{stop};
     }
