@@ -1,5 +1,17 @@
 Revision history for App-Riap
 
+0.06     2014-06-18 (SHARYANTO)
+
+         [ENHANCEMENTS]
+
+         - [ux] Add --all (-a) dummy option to ls just so I can type 'ls -la' or
+           'ls -al' without error.
+
+         - Add new setting: debug_time_command.
+
+         - Improve/fix completion by using Perinci::Sub::Complete 0.39.
+
+
 0.05     2014-06-17 (SHARYANTO)
 
          - Add --version (-v) for each command/function. --verbose loses the -v
