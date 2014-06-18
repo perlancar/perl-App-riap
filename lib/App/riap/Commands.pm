@@ -90,6 +90,7 @@ $SPEC{ls} = {
         },
         all => {
             summary     => 'Does nothing, added only to let you type ls -la',
+            schema      => ['bool'],
             description => <<'_',
 
 Some of you might type `ls -la` or `ls -al` by muscle memory. So the -a option
