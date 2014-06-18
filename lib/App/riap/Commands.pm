@@ -88,6 +88,16 @@ $SPEC{ls} = {
             pos        => 0,
             completion => $complete_file_or_dir,
         },
+        all => {
+            summary     => 'Does nothing, added only to let you type ls -la',
+            description => <<'_',
+
+Some of you might type `ls -la` or `ls -al` by muscle memory. So the -a option
+is added just to allow this to not produce an error :-).
+
+_
+            cmdline_aliases => { a=>{} },
+        },
     },
     "x.app.riap.aliases" => ["list"],
 };
