@@ -232,37 +232,23 @@ Set output format for command results. The same formatting is used by
 L<Perinci::CmdLine>. See that module or L<Perinci::Result::Format> for more
 details.
 
-=head2 debug_show_request => bool (default: 0)
+=head2 debug_riap => bool (default: 0)
 
-Whether to show raw Riap requests being sent to the server.
+Whether to show raw Riap requests and responses being sent to/received from the
+server.
 
-Note: since B<riap> uses L<Perinci::Access>, you can also achieve the same thing
-via:
+=head2 debug_completion => bool (default: 0)
 
- % TRACE=1 LOG_RIAP_REQUEST=1 perl -MLog::Any::App /path/to/riap ...
+Whether to show debugging information when doing tab completion.
 
-=head2 debug_show_request_for_completion => bool (default: 0)
+=head2 debug_time_command => bool (default: 0)
 
-Even though C<debug_show_request> setting is turned on, to see Riap requests
-sent when doing Tab completion, you need to turn on this setting. This setting
-is separated because showing logs during Tab completion is rather interfering,
-visually.
+Whether to show how long a command takes.
 
-=head2 debug_show_response => bool (default: 0)
+=head2 cache_period => int (default: 300)
 
-Whether to show raw Riap responses returned by the server.
-
-Note: since B<riap> uses L<Perinci::Access>, you can also achieve the same thing
-via:
-
- % TRACE=1 LOG_RIAP_RESPONSE=1 perl -MLog::Any::App /path/to/riap ...
-
-=head2 debug_show_response_for_completion => bool (default: 0)
-
-Even though C<debug_show_response> setting is turned on, to see Riap responses
-returned by server when doing Tab completion, you need to turn on this setting.
-This setting is separated because showing logs during Tab completion is rather
-interfering, visually.
+Number of seconds to cache Riap results from server, to speed up things like tab
+completion.
 
 
 =head1 FAQ
