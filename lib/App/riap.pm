@@ -605,6 +605,9 @@ sub catch_comp {
     local $ENV{COMP_POINT} = $start + length($word);
     $res = Perinci::Sub::Complete::shell_complete_arg(
         meta => $meta,
+        riap_server_url => $self->state('server_url'),
+        riap_uri        => $uri,
+        riap_client     => $self->{_pa},
         common_opts => [qw/--help -h -? --verbose -v/],
         extra_completer_args => {-shell => $self},
     );
