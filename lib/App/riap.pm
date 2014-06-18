@@ -14,6 +14,7 @@ use Data::Clean::JSON;
 use Path::Naive qw(concat_path_n);
 use Perinci::Sub::Util qw(err);
 use Term::Detect::Software qw(detect_terminal_cached);
+use Time::HiRes qw(time);
 
 # VERSION
 
@@ -148,7 +149,12 @@ sub cmdloop {
             $line = $o->readline($o->prompt_str);
         }
         last unless defined($line);
+        my $time1 = time();
         $o->cmd($line);
+        my $time2 = time();
+        if ($self->setting('debug_time_command')) {
+            say "%.3fs", ($time2-$time1);
+        }
         last if $o->{stop};
     }
     $o->postloop;
@@ -203,6 +209,10 @@ sub known_settings {
         $settings = {
             debug_riap => {
                 summary => 'Whether to display raw Riap requests/responses',
+                schema  => ['bool', default=>0],
+            },
+            debug_time_command => {
+                summary => 'Show how long it takes to complete a command',
                 schema  => ['bool', default=>0],
             },
             debug_completion => {
