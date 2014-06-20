@@ -452,15 +452,20 @@ $SPEC{history} = {
     v => 1.1,
     summary => 'shows command-line history',
     args => {
-        add => {
-            summary    => "Save current session's history",
+        append => {
+            summary    => "Append current session's history to history file",
             schema     => 'bool',
             cmdline_aliases => { a=>{} },
         },
         read => {
-            summary    => 'Read history from file',
+            summary    => '(Re-)read history from file',
             schema     => 'bool',
             cmdline_aliases => { r=>{} },
+        },
+        clear => {
+            summary    => 'Clear history',
+            schema     => 'bool',
+            cmdline_aliases => { c=>{} },
         },
     },
 };
@@ -473,6 +478,9 @@ sub history {
         return [200, "OK"];
     } elsif ($args{read}) {
         $shell->load_history;
+        return [200, "OK"];
+    } elsif ($args{clear}) {
+        $shell->clear_history;
         return [200, "OK"];
     } else {
         my @history;

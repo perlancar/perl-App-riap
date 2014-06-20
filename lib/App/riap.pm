@@ -314,6 +314,14 @@ sub save_settings {
     die "Unimplemented";
 }
 
+sub clear_history {
+    my $self = shift;
+
+    if ($self->{term}->Features->{setHistory}) {
+        $self->{term}->SetHistory();
+    }
+}
+
 sub load_history {
     my $self = shift;
 
