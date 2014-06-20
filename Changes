@@ -1,5 +1,12 @@
 Revision history for App-Riap
 
+0.08     2014-06-20 (SHARYANTO)
+
+         [BUG FIXES]
+
+         - Fix path handling for ls ('ls .' or 'ls ..' didn't work before).
+
+
 0.07     2014-06-20 (SHARYANTO)
 
          [ENHANCEMENTS]
