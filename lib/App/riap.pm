@@ -447,6 +447,7 @@ sub _help_cmd {
 sub _run_cmd {
     require Perinci::Sub::GetArgs::Argv;
     require Perinci::Result::Format;
+    local $Perinci::Result::Format::Enable_Cleansing = 1;
 
     my ($self, %args) = @_;
     my $cmd = $args{name};
