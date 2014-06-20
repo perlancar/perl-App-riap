@@ -80,6 +80,12 @@ $SPEC{ls} = {
     args => {
         long => {
             summary => 'Long mode (detail=1)',
+            description => <<'_',
+
+This will cause the command to request `child_metas` action to the server
+instead of `list`, to get more details.
+
+_
             schema => ['bool'],
             cmdline_aliases => { l => {} },
         },
@@ -117,10 +123,10 @@ sub ls {
     my %args = @_;
     my $shell = $args{-shell};
 
-    my $extra = {}; $extra->{detail} = 1 if $args{long};
     my $pwd = $shell->state("pwd");
     my $uri;
     my ($dir, $leaf);
+    my $resmeta = {};
 
     my @allres;
     #for my $path (@{ $args{paths} // [undef] }) {
@@ -135,12 +141,48 @@ sub ls {
             }
         }
 
-        my $res = $shell->riap_request(list => $uri, $extra);
-        return $res unless $res->[0] == 200;
-        for (@{ $res->[2] }) {
-            my $u = $args{long} ? $_->{uri} : $_;
-            next if defined($leaf) && length($leaf) && $u ne $leaf;
-            push @allres, $_;
+        my $res;
+        if ($args{long}) {
+            $res = $shell->riap_request(child_metas => $uri);
+            return $res unless $res->[0] == 200;
+            for my $u (sort keys %{ $res->[2] }) {
+                my $m = $res->[2]{$u};
+                next if defined($leaf) && length($leaf) && $u ne $leaf;
+                my $type; # XXX duplicate code somewhere
+                if ($u =~ m!/\z!) {
+                    $type = 'package';
+                } elsif ($u =~ /\A\$/) {
+                    $type = 'variable';
+                } elsif ($u =~ /\A\w+\z/) {
+                    $type = 'function';
+                }
+                push @allres, {
+                    uri         => $u,
+                    type        => $type,
+                    summary     => $m->{summary},
+                    date        => $m->{entity_date},
+                    v           => $m->{entity_v},
+                };
+            }
+            my $ff = [qw/type uri v date summary/];
+            my $rfo = {
+                table_column_orders => [$ff],
+            };
+            $resmeta = {
+                "result_format_options" => {
+                    "text"        => $rfo,
+                    "text-simple" => $rfo,
+                },
+                "table.fields" => $ff,
+            },
+        } else {
+            $res = $shell->riap_request(list => $uri);
+            return $res unless $res->[0] == 200;
+
+            for (@{ $res->[2] }) {
+                next if defined($leaf) && length($leaf) && $_ ne $leaf;
+                push @allres, $_;
+            }
         }
 
         if (!@allres && defined($leaf) && length($leaf)) {
@@ -148,7 +190,7 @@ sub ls {
         }
 
     }
-    [200, "OK", \@allres];
+    [200, "OK", \@allres, $resmeta];
 }
 
 $SPEC{pwd} = {

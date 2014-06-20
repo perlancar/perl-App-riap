@@ -382,7 +382,6 @@ sub riap_request {
     my $surl = $self->state('server_url');
 
     my $extra = { %{ $extra0 // {} } };
-    say "D:uri=$uri";
     $extra->{uri} = $uri;
 
     my $show = $self->{_in_completion} ?
