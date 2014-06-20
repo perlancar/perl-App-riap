@@ -1,5 +1,28 @@
 Revision history for App-Riap
 
+0.07     2014-06-20 (SHARYANTO)
+
+         [ENHANCEMENTS]
+
+         - More complete ls -l output by performing 'child_metas' Riap request
+           instead of 'list'.
+
+         - Add common option: --json.
+
+         - Add command: history.
+
+         [BUG FIXES]
+
+         - Fix path handling so that things like 'meta .' or 'req child_metas
+           ..' work.
+
+         - A couple of other fixes.
+
+         [REMOVED FEATURES]
+
+         - Remove per-command --version (unneeded).
+
+
 0.06     2014-06-18 (SHARYANTO)
 
          [ENHANCEMENTS]
