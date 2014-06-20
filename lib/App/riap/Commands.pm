@@ -9,6 +9,17 @@ use Path::Naive qw(is_abs_path normalize_path concat_path_n);
 #use Perinci::Sub::Util qw(err);
 
 # VERSION
+# DATE
+
+# like Path::Naive's concat_path_n, but adds "/" at the end when it thinks the
+# final path is a directory (package). it also doesn't die if $p2 is empty.
+sub _concat_path_ns {
+    my ($p1, $p2) = @_;
+    return $p1 unless defined($p2) && length($p2);
+    my $res = concat_path_n($p1, $p2);
+    $res .= "/" if $p2 =~ m!\A\.\.?\z|/\z!;
+    $res;
+}
 
 our %SPEC;
 
@@ -23,7 +34,7 @@ my $_complete_dir_or_file = sub {
     $dir //= "";
 
     my $pwd = $shell->state("pwd");
-    my $uri = length($dir) ? concat_path_n($pwd, $dir) : $pwd;
+    my $uri = length($dir) ? Path::Naive::concat_path_n($pwd, $dir) : $pwd;
     $uri .= "/" unless $uri =~ m!/\z!;
     my $extra = {};
     $extra->{type} = 'package' if $which eq 'dir';
@@ -364,7 +375,7 @@ sub req {
     my $action = $args{action};
     my $pwd    = $shell->state("pwd");
     my $path   = $args{path};
-    my $uri    = concat_path_n($pwd, $path);
+    my $uri    = _concat_path_ns($pwd, $path);
     my $extra  = $args{extra} // {};
 
     $shell->riap_request($action => $uri, $extra);
@@ -389,7 +400,7 @@ sub meta {
 
     my $pwd  = $shell->state("pwd");
     my $path = $args{path};
-    my $uri  = concat_path_n($pwd, $path);
+    my $uri  = _concat_path_ns($pwd, $path);
 
     $shell->riap_request(meta => $uri);
 }
@@ -413,7 +424,7 @@ sub info {
 
     my $pwd  = $shell->state("pwd");
     my $path = $args{path};
-    my $uri  = concat_path_n($pwd, $path);
+    my $uri  = _concat_path_ns($pwd, $path);
 
     $shell->riap_request(info => $uri);
 }
@@ -442,7 +453,7 @@ sub call {
 
     my $pwd  = $shell->state("pwd");
     my $path = $args{path};
-    my $uri  = concat_path_n($pwd, $path);
+    my $uri  = _concat_path_ns($pwd, $path);
     my $args = $args{args};
 
     $shell->riap_request(call => $uri, {args=>$args});
