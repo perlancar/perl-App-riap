@@ -426,6 +426,11 @@ sub _help_cmd {
     for (qw/action format format_options version/) {
         delete $pericmd->common_opts->{$_};
     }
+    $pericmd->common_opts->{json} = {
+        getopt  => 'json',
+        summary => 'Format result as JSON', # XXX translate
+        handler => sub {},
+    };
     $pericmd->run_help;
 }
 
@@ -439,6 +444,7 @@ sub _run_cmd {
     my $opt_help;
     my $opt_verbose;
     my $opt_version;
+    my $opt_fmt;
 
     my $res;
   RUN:
@@ -452,6 +458,7 @@ sub _run_cmd {
                 'help|h|?'  => \$opt_help,
                 'verbose'   => \$opt_verbose,
                 'version|v' => \$opt_version,
+                'json'      => sub { $opt_fmt = 'json-pretty' },
             ],
         );
         if ($res->[0] == 502) {
@@ -481,8 +488,12 @@ sub _run_cmd {
 
         $res = $args{code}->(%{$res->[2]}, -shell => $self);
     }
-    print Perinci::Result::Format::format(
-        $res, $self->setting('output_format'));
+
+    my $fmt = $opt_fmt //
+        $res->[3]{"x.app.riap.default_format"} //
+            $self->setting('output_format');
+
+    print Perinci::Result::Format::format($res, $fmt);
 }
 
 sub comp_ {
@@ -608,7 +619,7 @@ sub catch_comp {
         riap_server_url => $self->state('server_url'),
         riap_uri        => $uri,
         riap_client     => $self->{_pa},
-        common_opts => [qw/--help -h -? --verbose -v/],
+        common_opts => [qw/--help -h -? --verbose -v --json/],
         extra_completer_args => {-shell => $self},
     );
 
@@ -656,7 +667,7 @@ sub _install_cmds {
             local $ENV{COMP_POINT} = $start + length($word);
             my $res = Perinci::Sub::Complete::shell_complete_arg(
                 meta => $meta,
-                common_opts => [qw/--help -h -? --verbose --version -v/],
+                common_opts => [qw/--help -h -? --verbose --version -v --json/],
                 extra_completer_args => {-shell => $self},
             );
             my @comp = $self->_mimic_shell_completion(@$res);

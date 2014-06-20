@@ -479,7 +479,8 @@ sub history {
         if ($shell->{term}->Features->{getHistory}) {
             @history = grep { length } $shell->{term}->GetHistory;
         }
-        return [200, "OK", \@history];
+        return [200, "OK", \@history,
+                {"x.app.riap.default_format"=>"text-simple"}];
     }
 }
 
