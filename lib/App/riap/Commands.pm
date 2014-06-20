@@ -448,6 +448,41 @@ sub call {
     $shell->riap_request(call => $uri, {args=>$args});
 }
 
+$SPEC{history} = {
+    v => 1.1,
+    summary => 'shows command-line history',
+    args => {
+        add => {
+            summary    => "Save current session's history",
+            schema     => 'bool',
+            cmdline_aliases => { a=>{} },
+        },
+        read => {
+            summary    => 'Read history from file',
+            schema     => 'bool',
+            cmdline_aliases => { r=>{} },
+        },
+    },
+};
+sub history {
+    my %args = @_;
+    my $shell = $args{-shell};
+
+    if ($args{add}) {
+        $shell->save_history;
+        return [200, "OK"];
+    } elsif ($args{read}) {
+        $shell->load_history;
+        return [200, "OK"];
+    } else {
+        my @history;
+        if ($shell->{term}->Features->{getHistory}) {
+            @history = grep { length } $shell->{term}->GetHistory;
+        }
+        return [200, "OK", \@history];
+    }
+}
+
 1;
 
 # ABSTRACT: riap shell commands
