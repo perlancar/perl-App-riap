@@ -133,12 +133,7 @@ sub ls {
     for my $path ($args{path}) {
         $uri = $pwd . ($pwd =~ m!/\z! ? "" : "/");
         if (defined $path) {
-            ($dir, $leaf) = $path =~ m!(.*/)?(.*)!;
-            $dir //= "";
-            if (length $dir) {
-                $uri = concat_path_n($pwd, $dir);
-                $uri .= ($uri =~ m!/\z! ? "" : "/");
-            }
+            $uri = _concat_path_ns($pwd, $path);
         }
 
         my $res;
