@@ -17,6 +17,7 @@ use Term::Detect::Software qw(detect_terminal_cached);
 use Time::HiRes qw(time);
 
 # VERSION
+# DATE
 
 my $cleanser = Data::Clean::JSON->get_cleanser;
 
@@ -373,6 +374,7 @@ sub riap_request {
     my $surl = $self->state('server_url');
 
     my $extra = { %{ $extra0 // {} } };
+    say "D:uri=$uri";
     $extra->{uri} = $uri;
 
     my $show = $self->{_in_completion} ?
@@ -443,7 +445,6 @@ sub _run_cmd {
 
     my $opt_help;
     my $opt_verbose;
-    my $opt_version;
     my $opt_fmt;
 
     my $res;
@@ -457,7 +458,6 @@ sub _run_cmd {
             extra_getopts_before => [
                 'help|h|?'  => \$opt_help,
                 'verbose'   => \$opt_verbose,
-                'version|v' => \$opt_version,
                 'json'      => sub { $opt_fmt = 'json-pretty' },
             ],
         );
@@ -471,12 +471,6 @@ sub _run_cmd {
         if ($opt_help) {
             $self->_help_cmd(name=>$cmd, meta=>$args{meta});
             $res = [200, "OK"];
-            last;
-        }
-
-        if ($opt_version) {
-            $res = [200, "OK", "$cmd version " .
-                        ($args{meta}{entity_v} // '?')];
             last;
         }
 
@@ -667,7 +661,7 @@ sub _install_cmds {
             local $ENV{COMP_POINT} = $start + length($word);
             my $res = Perinci::Sub::Complete::shell_complete_arg(
                 meta => $meta,
-                common_opts => [qw/--help -h -? --verbose --version -v --json/],
+                common_opts => [qw/--help -h -? --verbose -v --json/],
                 extra_completer_args => {-shell => $self},
             );
             my @comp = $self->_mimic_shell_completion(@$res);
