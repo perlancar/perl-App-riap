@@ -527,13 +527,15 @@ sub comp_ {
     }
     #use Data::Dump; dd \@res;
 
-    my @comp = $self->_mimic_shell_completion(@{
-        SHARYANTO::Complete::Util::complete_array(array=>\@res, word=>$word0)
-      });
+    my $comp = SHARYANTO::Complete::Util::mimic_shell_dir_completion(
+        completion=>SHARYANTO::Complete::Util::complete_array(
+            array=>\@res, word=>$word0,
+        )
+    );
     if ($self->setting("debug_completion")) {
-        say "DEBUG: Completion: ".join(", ", @comp);
+        say "DEBUG: Completion: ".join(", ", @$comp);
     }
-    @comp;
+    @$comp;
 }
 
 sub _err {
@@ -584,20 +586,9 @@ sub catch_run {
     );
 }
 
-# trick to mimic shell's behavior (taken from periscomp code): if a single
-# dir foo/ matches, don't let completion complete and add spaces, so user
-# can Tab several times to drill down path, which is convenient.
-sub _mimic_shell_completion {
-    my ($self, @comp) = @_;
-
-    if (@comp == 1 && $comp[0] =~ m!/\z!) {
-        push @comp, "$comp[0] ";
-    }
-    @comp;
-}
-
 sub catch_comp {
     require Perinci::Sub::Complete;
+    require SHARYANTO::Complete::Util;
 
     my $self = shift;
     my ($cmd, $word, $line, $start) = @_;
@@ -625,7 +616,8 @@ sub catch_comp {
         extra_completer_args => {-shell => $self},
     );
 
-    $self->_mimic_shell_completion(@$res);
+    @{ SHARYANTO::Complete::Util::mimic_shell_dir_completion(
+        completion=>$res) };
 }
 
 my $installed = 0;
@@ -636,6 +628,7 @@ sub _install_cmds {
 
     require App::riap::Commands;
     require Perinci::Sub::Wrapper;
+    require SHARYANTO::Complete::Util;
     no strict 'refs';
     for my $cmd (sort keys %App::riap::Commands::SPEC) {
         $log->trace("Installing command $cmd ...");
@@ -672,11 +665,12 @@ sub _install_cmds {
                 common_opts => [qw/--help -h -? --verbose -v --json/],
                 extra_completer_args => {-shell => $self},
             );
-            my @comp = $self->_mimic_shell_completion(@$res);
+            my $comp = SHARYANTO::Complete::Util::mimic_shell_dir_completion(
+                completion => $res);
             if ($self->setting('debug_completion')) {
-                say "DEBUG: Completion: ".join(", ", @comp);
+                say "DEBUG: Completion: ".join(", ", @$comp);
             }
-            @comp;
+            @$comp;
         };
         if (@{ $meta->{"x.app.riap.aliases"} // []}) {
             # XXX not yet installed by Term::Shell?
