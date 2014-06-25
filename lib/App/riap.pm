@@ -499,7 +499,7 @@ sub _run_cmd {
 }
 
 sub comp_ {
-    require SHARYANTO::Complete::Util;
+    require Complete::Util;
 
     my $self = shift;
     my ($cmd, $word0, $line, $start) = @_;
@@ -527,8 +527,8 @@ sub comp_ {
     }
     #use Data::Dump; dd \@res;
 
-    my $comp = SHARYANTO::Complete::Util::mimic_shell_dir_completion(
-        completion=>SHARYANTO::Complete::Util::complete_array(
+    my $comp = Complete::Util::mimic_shell_dir_completion(
+        completion=>Complete::Util::complete_array(
             array=>\@res, word=>$word0,
         )
     );
@@ -588,7 +588,7 @@ sub catch_run {
 
 sub catch_comp {
     require Perinci::Sub::Complete;
-    require SHARYANTO::Complete::Util;
+    require Complete::Util;
 
     my $self = shift;
     my ($cmd, $word, $line, $start) = @_;
@@ -616,7 +616,7 @@ sub catch_comp {
         extra_completer_args => {-shell => $self},
     );
 
-    @{ SHARYANTO::Complete::Util::mimic_shell_dir_completion(
+    @{ Complete::Util::mimic_shell_dir_completion(
         completion=>$res) };
 }
 
@@ -628,7 +628,7 @@ sub _install_cmds {
 
     require App::riap::Commands;
     require Perinci::Sub::Wrapper;
-    require SHARYANTO::Complete::Util;
+    require Complete::Util;
     no strict 'refs';
     for my $cmd (sort keys %App::riap::Commands::SPEC) {
         $log->trace("Installing command $cmd ...");
@@ -665,7 +665,7 @@ sub _install_cmds {
                 common_opts => [qw/--help -h -? --verbose -v --json/],
                 extra_completer_args => {-shell => $self},
             );
-            my $comp = SHARYANTO::Complete::Util::mimic_shell_dir_completion(
+            my $comp = Complete::Util::mimic_shell_dir_completion(
                 completion => $res);
             if ($self->setting('debug_completion')) {
                 say "DEBUG: Completion: ".join(", ", @$comp);
