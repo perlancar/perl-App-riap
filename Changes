@@ -1,5 +1,12 @@
 Revision history for App-Riap
 
+0.09     2014-06-25 (SHARYANTO)
+
+         - No functional changes.
+
+         - Use Complete::Util which replaces SHARYANTO::Complete::Util.
+
+
 0.08     2014-06-20 (SHARYANTO)
 
          [BUG FIXES]
