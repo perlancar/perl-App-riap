@@ -617,7 +617,7 @@ sub catch_comp {
     );
 
     @{ Complete::Util::mimic_shell_dir_completion(
-        completion=>$res) };
+        completion=>$res->{completion}) };
 }
 
 my $installed = 0;
@@ -666,7 +666,7 @@ sub _install_cmds {
                 extra_completer_args => {-shell => $self},
             );
             my $comp = Complete::Util::mimic_shell_dir_completion(
-                completion => $res);
+                completion => $res->{completion});
             if ($self->setting('debug_completion')) {
                 say "DEBUG: Completion: ".join(", ", @$comp);
             }
