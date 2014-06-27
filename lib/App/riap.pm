@@ -617,7 +617,9 @@ sub catch_comp {
     );
 
     @{ Complete::Util::mimic_shell_dir_completion(
-        completion=>$res->{completion}) };
+        completion => Complete::Util::complete_array(
+            array=>$res->{completion}, word=>$word)
+    ) };
 }
 
 my $installed = 0;
@@ -627,8 +629,8 @@ sub _install_cmds {
     return if $installed;
 
     require App::riap::Commands;
-    require Perinci::Sub::Wrapper;
     require Complete::Util;
+    require Perinci::Sub::Wrapper;
     no strict 'refs';
     for my $cmd (sort keys %App::riap::Commands::SPEC) {
         $log->trace("Installing command $cmd ...");
@@ -666,7 +668,9 @@ sub _install_cmds {
                 extra_completer_args => {-shell => $self},
             );
             my $comp = Complete::Util::mimic_shell_dir_completion(
-                completion => $res->{completion});
+                completion => Complete::Util::complete_array(
+                    array=>$res->{completion}, word=>$word)
+            );
             if ($self->setting('debug_completion')) {
                 say "DEBUG: Completion: ".join(", ", @$comp);
             }
