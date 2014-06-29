@@ -1,5 +1,13 @@
 Revision history for App-Riap
 
+0.11     2014-06-29 (SHARYANTO)
+
+         - No functional changes.
+
+         - Adjust to Complete::Util 0.10 (changed interface of
+           mimic_shell_dir_completion).
+
+
 0.10     2014-06-27 (SHARYANTO)
 
          - No functional changes.
