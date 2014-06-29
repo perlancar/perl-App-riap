@@ -528,9 +528,8 @@ sub comp_ {
     #use Data::Dump; dd \@res;
 
     my $comp = Complete::Util::mimic_shell_dir_completion(
-        completion=>Complete::Util::complete_array(
-            array=>\@res, word=>$word0,
-        )
+        Complete::Util::complete_array(
+            array=>\@res, word=>$word0),
     );
     if ($self->setting("debug_completion")) {
         say "DEBUG: Completion: ".join(", ", @$comp);
@@ -617,9 +616,9 @@ sub catch_comp {
     );
 
     @{ Complete::Util::mimic_shell_dir_completion(
-        completion => Complete::Util::complete_array(
+        Complete::Util::complete_array(
             array=>$res->{completion}, word=>$word)
-    ) };
+      )};
 }
 
 my $installed = 0;
@@ -668,9 +667,9 @@ sub _install_cmds {
                 extra_completer_args => {-shell => $self},
             );
             my $comp = Complete::Util::mimic_shell_dir_completion(
-                completion => Complete::Util::complete_array(
+                Complete::Util::complete_array(
                     array=>$res->{completion}, word=>$word)
-            );
+              );
             if ($self->setting('debug_completion')) {
                 say "DEBUG: Completion: ".join(", ", @$comp);
             }
