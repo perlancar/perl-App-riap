@@ -105,6 +105,7 @@ EOT
 
 # override, readline workarounds
 sub cmdloop {
+    require Carp;
     require IO::Stty;
     require Signal::Safety;
 
@@ -123,7 +124,12 @@ sub cmdloop {
 
     local $SIG{__DIE__} = sub {
         IO::Stty::stty(\*STDIN, 'echo');
-        die @_;
+        $o->setting('debug_stack_trace') ? Carp::confess(@_) : die(@_);
+    };
+
+    local $SIG{__WARN__} = sub {
+        IO::Stty::stty(\*STDIN, 'echo');
+        $o->setting('debug_stack_trace') ? Carp::cluck(@_) : warn(@_);
     };
 
     # some workaround for Term::ReadLine
@@ -218,6 +224,10 @@ sub known_settings {
             },
             debug_completion => {
                 summary => 'Whether to display debugging for tab completion',
+                schema  => ['bool', default=>0],
+            },
+            debug_stack_trace => {
+                summary => 'Whether to print stack trace on die/warning',
                 schema  => ['bool', default=>0],
             },
             output_format => {
