@@ -1,5 +1,12 @@
 Revision history for App-Riap
 
+0.13     2014-07-02 (SHARYANTO)
+
+         - No functional changes.
+
+         - Adjust to Perinci::Sub::Complete 0.53.
+
+
 0.12     2014-07-02 (SHARYANTO)
 
          - No functional changes.
