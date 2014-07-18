@@ -622,7 +622,7 @@ sub catch_comp {
         riap_server_url => $self->state('server_url'),
         riap_uri        => $uri,
         riap_client     => $self->{_pa},
-        common_opts     => [qw/--help -h -? --verbose -v --json/],
+        common_opts     => {'help|h|?'=>sub{}, 'verbose|v'=>sub{},'json'=>sub{}},
         extra_completer_args => {-shell => $self},
     );
 
@@ -674,7 +674,7 @@ sub _install_cmds {
             local $ENV{COMP_POINT} = $start + length($word);
             my $res = Perinci::Sub::Complete::complete_cli_arg(
                 meta => $meta,
-                common_opts => [qw/--help -h -? --verbose -v --json/],
+                common_opts => {'help|h|?'=>sub{}, 'verbose|v'=>sub{},'json'=>sub{}},
                 extra_completer_args => {-shell => $self},
             );
             my $comp = Complete::Bash::mimic_dir_completion(
