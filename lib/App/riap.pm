@@ -473,11 +473,11 @@ sub _run_cmd {
             meta => $args{meta},
             check_required_args => 0,
             per_arg_json => 1,
-            extra_getopts_before => [
-                'help|h|?'  => \$opt_help,
-                'verbose'   => \$opt_verbose,
+            common_opts => {
+                'help|h|?'  => sub { $opt_help = 1 },
+                'verbose'   => sub { $opt_verbose = 1 },
                 'json'      => sub { $opt_fmt = 'json-pretty' },
-            ],
+            },
         );
         if ($res->[0] == 502) {
             # try sending argv to the server because we can't seem to parse it
