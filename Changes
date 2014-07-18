@@ -1,5 +1,13 @@
 Revision history for App-Riap
 
+0.14     2014-07-18 (SHARYANTO)
+
+         - No functional changes.
+
+         - Adjust to Perinci::Sub::Complete 0.55+, Perinci::Sub::GetArgs::Argv
+           0.37+.
+
+
 0.13     2014-07-02 (SHARYANTO)
 
          - No functional changes.
