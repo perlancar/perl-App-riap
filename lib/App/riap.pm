@@ -538,10 +538,13 @@ sub comp_ {
     }
     #use Data::Dump; dd \@res;
 
-    my $comp = Complete::Bash::mimic_dir_completion(
-        Complete::Util::complete_array_elem(
+    my $comp = Complete::Bash::format_completion({
+        path_sep   => '/',
+        as         => 'array',
+        escmode    => 'none',
+        completion => Complete::Util::complete_array_elem(
             array=>\@res, word=>$word0),
-    );
+    });
     if ($self->setting("debug_completion")) {
         say "DEBUG: Completion: ".join(", ", @$comp);
     }
@@ -626,10 +629,13 @@ sub catch_comp {
         extra_completer_args => {-shell => $self},
     );
 
-    @{ Complete::Bash::mimic_dir_completion(
-        Complete::Util::complete_array_elem(
-            array=>$res->{completion}, word=>$word)
-      )};
+    @{ Complete::Bash::format_completion({
+        path_sep   => '/',
+        as         => 'array',
+        escmode    => 'none',
+        completion => Complete::Util::complete_array_elem(
+            array=>$res->{completion}, word=>$word),
+    })};
 }
 
 my $installed = 0;
@@ -677,10 +683,13 @@ sub _install_cmds {
                 common_opts => {'help|h|?'=>sub{}, 'verbose|v'=>sub{},'json'=>sub{}},
                 extra_completer_args => {-shell => $self},
             );
-            my $comp = Complete::Bash::mimic_dir_completion(
-                Complete::Util::complete_array_elem(
-                    array=>$res->{completion}, word=>$word)
-              );
+            my $comp = Complete::Bash::format_completion({
+                path_sep   => '/',
+                as         => 'array',
+                escmode    => 'none',
+                completion => Complete::Util::complete_array_elem(
+                    array=>$res->{completion}, word=>$word),
+            });
             if ($self->setting('debug_completion')) {
                 say "DEBUG: Completion: ".join(", ", @$comp);
             }
