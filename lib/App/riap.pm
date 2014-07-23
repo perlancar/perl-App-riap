@@ -453,6 +453,13 @@ sub _help_cmd {
     $pericmd->run_help;
 }
 
+my $opts = {};
+my $common_opts = {
+    help    => {getopt=>'help|h|?', handler=>sub {$opts->{help}=1}},
+    verbose => {getopt=>'verbose' , handler=>sub {$opts->{verbose}=1}},
+    json    => {getopt=>'json'    , handler=>sub {$opts->{fmt}='json-pretty'}},
+};
+
 sub _run_cmd {
     require Perinci::Sub::GetArgs::Argv;
     require Perinci::Result::Format;
@@ -461,23 +468,16 @@ sub _run_cmd {
     my ($self, %args) = @_;
     my $cmd = $args{name};
 
-    my $opt_help;
-    my $opt_verbose;
-    my $opt_fmt;
-
     my $res;
   RUN:
     {
+        $opts = {};
         $res = Perinci::Sub::GetArgs::Argv::get_args_from_argv(
             argv => $args{argv},
             meta => $args{meta},
             check_required_args => 0,
             per_arg_json => 1,
-            common_opts => {
-                'help|h|?'  => sub { $opt_help = 1 },
-                'verbose'   => sub { $opt_verbose = 1 },
-                'json'      => sub { $opt_fmt = 'json-pretty' },
-            },
+            common_opts => $common_opts,
         );
         if ($res->[0] == 502) {
             # try sending argv to the server because we can't seem to parse it
@@ -486,22 +486,22 @@ sub _run_cmd {
         }
         last RUN if $res->[0] != 200;
 
-        if ($opt_help) {
+        if ($opts->{help}) {
             $self->_help_cmd(name=>$cmd, meta=>$args{meta});
             $res = [200, "OK"];
             last;
         }
 
-        if ($res->[3] && defined $res->[3]{'func.missing_arg'}) {
-            $res = [400, "Missing required arg '".
-                        $res->[3]{'func.missing_arg'}."'"];
+        if (@{ $res->[3]{'func.missing_args'} // [] }) {
+            $res = [400, "Missing required arg(s): ".
+                        join(', ', @{ $res->[3]{'func.missing_args'} })];
             last;
         }
 
         $res = $args{code}->(%{$res->[2]}, -shell => $self);
     }
 
-    my $fmt = $opt_fmt //
+    my $fmt = $opts->{fmt} //
         $res->[3]{"x.app.riap.default_format"} //
             $self->setting('output_format');
 
@@ -620,12 +620,13 @@ sub catch_comp {
 
     local $ENV{COMP_LINE} = $line;
     local $ENV{COMP_POINT} = $start + length($word);
+    $opts = {};
     $res = Perinci::Sub::Complete::complete_cli_arg(
         meta => $meta,
         riap_server_url => $self->state('server_url'),
         riap_uri        => $uri,
         riap_client     => $self->{_pa},
-        common_opts     => {'help|h|?'=>sub{}, 'verbose|v'=>sub{},'json'=>sub{}},
+        common_opts     => $common_opts,
         extra_completer_args => {-shell => $self},
     );
 
@@ -678,9 +679,10 @@ sub _install_cmds {
             local $self->{_in_completion} = 1;
             local $ENV{COMP_LINE} = $line;
             local $ENV{COMP_POINT} = $start + length($word);
+            $opts = {};
             my $res = Perinci::Sub::Complete::complete_cli_arg(
                 meta => $meta,
-                common_opts => {'help|h|?'=>sub{}, 'verbose|v'=>sub{},'json'=>sub{}},
+                common_opts => $common_opts,
                 extra_completer_args => {-shell => $self},
             );
             my $comp = Complete::Bash::format_completion({
