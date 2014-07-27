@@ -618,18 +618,18 @@ sub catch_comp {
     return () unless $res->[0] == 200;
     my $meta = $res->[2];
 
-    local $ENV{COMP_LINE} = $line;
-    local $ENV{COMP_POINT} = $start + length($word);
+    my ($words, $cword) = @{ Complete::Bash::parse_cmdline(
+        $line, $start+length($word), '=') };
     $opts = {};
     $res = Perinci::Sub::Complete::complete_cli_arg(
-        meta => $meta,
+        words => $words, cword => $cword,
+        meta => $meta, common_opts => $common_opts,
+        extras          => {-shell => $self},
         riap_server_url => $self->state('server_url'),
         riap_uri        => $uri,
         riap_client     => $self->{_pa},
-        common_opts     => $common_opts,
-        extra_completer_args => {-shell => $self},
     );
-
+    $res = _hashify_compres($res);
     @{ Complete::Bash::format_completion({
         path_sep   => '/',
         as         => 'array',
@@ -637,6 +637,10 @@ sub catch_comp {
         completion => Complete::Util::complete_array_elem(
             array=>$res->{completion}, word=>$word),
     })};
+}
+
+sub _hashify_compres {
+    ref($_[0]) eq 'HASH' ? $_[0] : {completion=>$_[0]};
 }
 
 my $installed = 0;
@@ -672,19 +676,21 @@ sub _install_cmds {
             $self->_run_cmd(name=>$cmd, meta=>$meta, argv=>\@_, code=>$code);
         };
         *{"comp_$cmd"} = sub {
+            require Complete::Bash;
             require Perinci::Sub::Complete;
 
             my $self = shift;
             my ($word, $line, $start) = @_;
             local $self->{_in_completion} = 1;
-            local $ENV{COMP_LINE} = $line;
-            local $ENV{COMP_POINT} = $start + length($word);
+            my ($words, $cword) = @{ Complete::Bash::parse_cmdline(
+                $line, $start+length($word), '=') };
             $opts = {};
             my $res = Perinci::Sub::Complete::complete_cli_arg(
-                meta => $meta,
-                common_opts => $common_opts,
-                extra_completer_args => {-shell => $self},
+                words => $words, cword => $cword,
+                meta => $meta, common_opts => $common_opts,
+                extras => {-shell => $self},
             );
+            $res = _hashify_compres($res);
             my $comp = Complete::Bash::format_completion({
                 path_sep   => '/',
                 as         => 'array',
