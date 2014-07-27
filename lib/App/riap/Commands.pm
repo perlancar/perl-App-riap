@@ -27,7 +27,7 @@ my $_complete_dir_or_file = sub {
     my $which = shift;
 
     my %args = @_;
-    my $shell = $args{parent_args}{parent_args}{extra_completer_args}{-shell};
+    my $shell = $args{extras}{-shell};
 
     my $word0 = $args{word};
     my ($dir, $word) = $word0 =~ m!(.*/)?(.*)!;
@@ -64,7 +64,7 @@ my $complete_executable = sub {
 
 my $complete_setting_name = sub {
     my %args = @_;
-    my $shell = $args{parent_args}{parent_args}{extra_completer_args}{-shell};
+    my $shell = $args{extras}{-shell};
 
     [keys %{ $shell->known_settings }];
 };
@@ -274,8 +274,7 @@ $SPEC{set} = {
                 require Perinci::Sub::Complete;
 
                 my %args = @_;
-                my $shell = $args{parent_args}{parent_args}->
-                    {extra_completer_args}{-shell};
+                my $shell = $args{extras}{-shell};
 
                 my $args = $args{args};
                 return [] unless $args->{name};
