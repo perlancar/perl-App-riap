@@ -405,7 +405,7 @@ sub riap_request {
     my $res;
     my $cache_key = $self->json_encode({action=>$action, %$extra});
     # we only want to cache some actions
-    if ($action =~ /\A(info|list|meta)\z/ &&
+    if ($action =~ /\A(info|list|meta|child_metas)\z/ &&
             ($res = $self->{_cache}->get($cache_key))) {
         # cache hit
         if ($show) {
