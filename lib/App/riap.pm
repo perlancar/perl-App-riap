@@ -612,6 +612,7 @@ sub catch_run {
 
 sub catch_comp {
     require Perinci::Sub::Complete;
+    require Complete::Bash;
     require Complete::Util;
 
     my $self = shift;
