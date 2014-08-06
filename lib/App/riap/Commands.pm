@@ -275,8 +275,7 @@ $SPEC{set} = {
 
                 my %args = @_;
                 my $shell = $args{extras}{-shell};
-
-                my $args = $args{args};
+                my $args  = $args{extras}{args};
                 return [] unless $args->{name};
                 my $setting = $shell->known_settings->{ $args->{name} };
                 return [] unless $setting;
