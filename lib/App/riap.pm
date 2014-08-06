@@ -93,7 +93,7 @@ EOT
     my $pwd;
     my $surl = URI->new($ARGV[0] // "/");
     $self->state(server_url => $surl);
-    my $res = $self->{_pa}->parse_url($surl);
+    my $res = $self->riap_parse_url($surl);
     die "Can't parse url $surl\n" unless $res;
     $pwd = $res->{path};
     $self->state(pwd        => $pwd);
@@ -382,12 +382,23 @@ sub prompt_str {
     );
 }
 
-sub riap_request {
-    my ($self, $action, $uri, $extra0) = @_;
-    my $copts = {
+sub _riap_set_copts {
+    my $self = shift;
+    return {
         user     => $self->setting('user'),
         password => $self->setting('password'),
     };
+}
+
+sub riap_parse_url {
+    my ($self, $url) = @_;
+    my $copts = $self->_riap_set_copts;
+    $self->{_pa}->parse_url($url, $copts);
+}
+
+sub riap_request {
+    my ($self, $action, $uri, $extra0) = @_;
+    my $copts = $self->_riap_set_copts;
 
     my $surl = $self->state('server_url');
 
