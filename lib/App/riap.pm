@@ -461,7 +461,8 @@ sub _help_cmd {
         summary => 'Format result as JSON', # XXX translate
         handler => sub {},
     };
-    $pericmd->run_help;
+    my $res = $pericmd->run_help;
+    print $res->[2];
 }
 
 my $opts = {};
