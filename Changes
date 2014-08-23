@@ -1,5 +1,12 @@
 Revision history for App-Riap
 
+0.21     2014-08-24 (SHARYANTO)
+
+         - No functional changes.
+
+         - Adjust to Perinci::CmdLine 1.19.
+
+
 0.20     2014-08-06 (SHARYANTO)
 
          - [Bugfix] Forgot to require module.
