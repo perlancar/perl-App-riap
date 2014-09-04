@@ -448,6 +448,7 @@ sub _help_cmd {
     my $pericmd = Perinci::CmdLine->new(
         url => undef,
         log_any_app => 0,
+        read_config => 0,
         program_name => $args{name},
     );
     for (qw/action format format_options version/) {
