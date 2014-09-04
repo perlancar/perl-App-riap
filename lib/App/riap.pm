@@ -450,9 +450,6 @@ sub _help_cmd {
         log_any_app => 0,
         program_name => $args{name},
     );
-    # hacks to avoid specifying url
-    $pericmd->{_help_meta} = $args{meta};
-    $pericmd->{_help_info} = {type=>'function'};
     for (qw/action format format_options version/) {
         delete $pericmd->common_opts->{$_};
     }
@@ -461,7 +458,11 @@ sub _help_cmd {
         summary => 'Format result as JSON', # XXX translate
         handler => sub {},
     };
-    my $res = $pericmd->run_help;
+    my $r = {orig_argv=>[]};
+    # hacks to avoid specifying url
+    $r->{_help_meta} = $args{meta};
+    $r->{_help_info} = {type=>'function'};
+    my $res = $pericmd->run_help($r);
     print $res->[2];
 }
 
