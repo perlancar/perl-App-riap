@@ -64,9 +64,9 @@ An example session:
  riap> list_accounts --nodisabled --nomigrated
  andi
  budi
- charlie
- devi
- steven
+ jamal
+ titin
+ ujang
 
  riap> ../modify/delete_account --help
 
