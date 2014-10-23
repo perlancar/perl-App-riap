@@ -493,7 +493,7 @@ sub _run_cmd {
             per_arg_json => 1,
             common_opts => $common_opts,
         );
-        if ($res->[0] == 502) {
+        if ($res->[0] == 501) {
             # try sending argv to the server because we can't seem to parse it
             $res = $args{code_argv}->(@{ $args{argv} });
             last RUN;
