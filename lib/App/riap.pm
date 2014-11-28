@@ -553,10 +553,10 @@ sub comp_ {
     #use Data::Dump; dd \@res;
 
     my $comp = Complete::Bash::format_completion({
-        path_sep   => '/',
-        as         => 'array',
-        escmode    => 'default',
-        completion => Complete::Util::complete_array_elem(
+        path_sep => '/',
+        as       => 'array',
+        escmode  => 'default',
+        words    => Complete::Util::complete_array_elem(
             array=>\@res, word=>$word0),
     });
     if ($self->setting("debug_completion")) {
@@ -647,16 +647,16 @@ sub catch_comp {
     );
     $res = _hashify_compres($res);
     @{ Complete::Bash::format_completion({
-        path_sep   => '/',
-        as         => 'array',
-        escmode    => 'default',
-        completion => Complete::Util::complete_array_elem(
-            array=>$res->{completion}, word=>$word),
+        path_sep => '/',
+        as       => 'array',
+        escmode  => 'default',
+        words    => Complete::Util::complete_array_elem(
+            array=>$res->{words}, word=>$word),
     })};
 }
 
 sub _hashify_compres {
-    ref($_[0]) eq 'HASH' ? $_[0] : {completion=>$_[0]};
+    ref($_[0]) eq 'HASH' ? $_[0] : {words=>$_[0]};
 }
 
 my $installed = 0;
@@ -709,11 +709,11 @@ sub _install_cmds {
             );
             $res = _hashify_compres($res);
             my $comp = Complete::Bash::format_completion({
-                path_sep   => '/',
-                as         => 'array',
-                escmode    => 'default',
-                completion => Complete::Util::complete_array_elem(
-                    array=>$res->{completion}, word=>$word),
+                path_sep => '/',
+                as       => 'array',
+                escmode  => 'default',
+                words    => Complete::Util::complete_array_elem(
+                    array=>$res->{words}, word=>$word),
             });
             if ($self->setting('debug_completion')) {
                 say "DEBUG: Completion: ".join(", ", @$comp);
