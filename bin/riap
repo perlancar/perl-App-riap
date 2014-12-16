@@ -14,7 +14,7 @@ $shell->cmdloop;
 
 1;
 # ABSTRACT: Riap command-line client shell
-# PODNAME: riap
+# PODNAME:
 
 =head1 SYNOPSIS
 
