@@ -1,5 +1,8 @@
 package App::riap;
 
+# DATE
+# VERSION
+
 use 5.010001;
 use strict;
 use utf8;
@@ -15,9 +18,6 @@ use Path::Naive qw(concat_path_n);
 use Perinci::Sub::Util qw(err);
 use Term::Detect::Software qw(detect_terminal_cached);
 use Time::HiRes qw(time);
-
-# VERSION
-# DATE
 
 my $cleanser = Data::Clean::JSON->get_cleanser;
 

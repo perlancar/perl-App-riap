@@ -1,5 +1,8 @@
 package App::riap::Commands;
 
+# DATE
+# VERSION
+
 use 5.010;
 use strict;
 use warnings;
@@ -7,9 +10,6 @@ use Log::Any '$log';
 
 use Path::Naive qw(is_abs_path normalize_path concat_path_n);
 #use Perinci::Sub::Util qw(err);
-
-# VERSION
-# DATE
 
 # like Path::Naive's concat_path_n, but adds "/" at the end when it thinks the
 # final path is a directory (package). it also doesn't die if $p2 is empty.
@@ -22,6 +22,11 @@ sub _concat_path_ns {
 }
 
 our %SPEC;
+
+$SPEC{':package'} = {
+    v => 1.1,
+    summary => 'riap shell commands',
+};
 
 my $_complete_dir_or_file = sub {
     my $which = shift;
@@ -539,7 +544,6 @@ sub history {
 }
 
 1;
-
-# ABSTRACT: riap shell commands
+# ABSTRACT:
 
 =for Pod::Coverage .+
