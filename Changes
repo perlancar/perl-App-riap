@@ -1,5 +1,12 @@
 Revision history for App-Riap
 
+0.25    2014-12-20 (PERLANCAR)
+
+        - No functional changes.
+
+        - Adjust to Perinci::Sub::Complete 0.68.
+
+
 0.24    2014-11-28 (PERLANCAR)
 
 	- Adjust to Complete::Bash 0.12 (in hash form, words are now put in
