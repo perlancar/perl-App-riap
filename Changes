@@ -1,5 +1,11 @@
 Revision history for App-Riap
 
+0.26    2014-12-22 (PERLANCAR)
+
+	- [Bugfix] exclude non-functions in Rinci metadata from being
+	  entered as commands.
+
+
 0.25    2014-12-20 (PERLANCAR)
 
         - No functional changes.
