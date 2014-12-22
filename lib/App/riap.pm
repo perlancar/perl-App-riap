@@ -532,7 +532,7 @@ sub comp_ {
     local $self->{_in_completion} = 1;
 
     my @res = ("help", "exit");
-    push @res, keys %App::riap::Commands::SPEC;
+    push @res, grep {/\A\w+\z/} keys %App::riap::Commands::SPEC;
 
     # add functions
     my ($dir, $word) = $word0 =~ m!(.*/)?(.*)!;
@@ -670,6 +670,7 @@ sub _install_cmds {
     require Perinci::Sub::Wrapper;
     no strict 'refs';
     for my $cmd (sort keys %App::riap::Commands::SPEC) {
+        next unless $cmd =~ /\A\w+\z/; # only functions
         $log->trace("Installing command $cmd ...");
         my $meta = $App::riap::Commands::SPEC{$cmd};
         my $code = \&{"App::riap::Commands::$cmd"};
