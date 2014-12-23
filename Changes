@@ -1,5 +1,11 @@
 Revision history for App-Riap
 
+0.27    2014-12-23 (PERLANCAR)
+
+	- Replace Perinci::CmdLine with Perinci::CmdLine::Help to generate
+	  help message, this reduces dependency significantly.
+
+
 0.26    2014-12-22 (PERLANCAR)
 
 	- [Bugfix] exclude non-functions in Rinci metadata from being
