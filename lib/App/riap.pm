@@ -438,41 +438,36 @@ sub riap_request {
     $res;
 }
 
-sub _help_cmd {
-    require Perinci::CmdLine;
-
-    my ($self, %args) = @_;
-    my $cmd = $args{name};
-
-    local $ENV{VERBOSE} = 1;
-    my $pericmd = Perinci::CmdLine->new(
-        url => undef,
-        log_any_app => 0,
-        read_config => 0,
-        program_name => $args{name},
-    );
-    for (qw/action format format_options version/) {
-        delete $pericmd->common_opts->{$_};
-    }
-    $pericmd->common_opts->{json} = {
-        getopt  => 'json',
-        summary => 'Format result as JSON', # XXX translate
-        handler => sub {},
-    };
-    my $r = {orig_argv=>[]};
-    # hacks to avoid specifying url
-    $r->{_help_meta} = $args{meta};
-    $r->{_help_info} = {type=>'function'};
-    my $res = $pericmd->run_help($r);
-    print $res->[2];
-}
-
 my $opts = {};
 my $common_opts = {
-    help    => {getopt=>'help|h|?', handler=>sub {$opts->{help}=1}},
-    verbose => {getopt=>'verbose' , handler=>sub {$opts->{verbose}=1}},
-    json    => {getopt=>'json'    , handler=>sub {$opts->{fmt}='json-pretty'}},
+    help    => {
+        getopt=>'help|h|?',
+        usage => '--help (or -v, -?)',
+        handler=>sub {$opts->{help}=1},
+    },
+    verbose => {
+        getopt=>'verbose',
+        handler=>sub {$opts->{verbose}=1},
+    },
+    json    => {
+        getopt=>'json',
+        handler=>sub {$opts->{fmt}='json-pretty'},
+    },
 };
+
+sub _help_cmd {
+    require Perinci::CmdLine::Help;
+
+    my ($self, %args) = @_;
+
+    my $res = Perinci::CmdLine::Help::gen_help(
+        program_name => $args{name},
+        meta         => $args{meta},
+        common_opts  => $common_opts,
+        per_arg_json => 1,
+    );
+    print $res->[2];
+}
 
 sub _run_cmd {
     require Perinci::Sub::GetArgs::Argv;
