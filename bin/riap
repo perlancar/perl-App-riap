@@ -330,19 +330,3 @@ Settings file. Each line is either a blank line, a comment (C<# ...>), or C<<
 <name>=<value-in-json> >>. An invalid line (e.g. unknown settings, invalid JSON
 syntax) will cause shell to abort when loading.
 
-
-=head1 TODO
-
-=over
-
-=item * Configurable prompt
-
-=item * RIAP_HISTSIZE
-
-And also probably RIAP_HISTFILESIZE, RIAP_HISTIGNORE, RIAP_HISTTIMEFORMAT.
-
-=item * Something like PATH? [#E]
-
-=back
-
-=cut
