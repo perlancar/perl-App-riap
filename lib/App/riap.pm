@@ -251,10 +251,10 @@ sub known_settings {
                 schema  => 'str*',
             },
         };
-        require Data::Sah;
+        require Data::Sah::Normalize;
         for (keys %$settings) {
             for ($settings->{$_}{schema}) {
-                $_ = Data::Sah::normalize_schema($_);
+                $_ = Data::Sah::Normalize::normalize_schema($_);
             }
         }
     }
