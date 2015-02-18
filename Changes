@@ -1,5 +1,13 @@
 Revision history for App-Riap
 
+0.29    2015-02-18 (PERLANCAR)
+
+	- No functional changes.
+
+	- Use Data::Sah::Normalize instead of Data::Sah when just for
+	  normalizing schemas.
+
+
 0.28    2015-01-03 (PERLANCAR)
 
 	- No functional changes.
