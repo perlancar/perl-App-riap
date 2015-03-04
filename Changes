@@ -1,5 +1,10 @@
 Revision history for App-Riap
 
+0.30    2015-03-04 (PERLANCAR)
+
+	- Follow Complete 0.12 (escmode renamed to esc_mode).
+
+
 0.29    2015-02-18 (PERLANCAR)
 
 	- No functional changes.
