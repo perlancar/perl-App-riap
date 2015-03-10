@@ -166,14 +166,11 @@ sub ls {
             }
             my $ff = [qw/type uri v date summary/];
             my $rfo = {
-                table_column_orders => [$ff],
+
             };
             $resmeta = {
-                "result_format_options" => {
-                    "text"        => $rfo,
-                    "text-simple" => $rfo,
-                },
-                "table.fields" => $ff,
+                "format_options" => {any=>{table_column_orders => [$ff]}},
+                "table.fields"   => $ff,
             },
         } else {
             $res = $shell->riap_request(list => $uri);
@@ -324,10 +321,7 @@ sub set {
             };
         }
         my $rfo = {table_column_orders=>[[qw/name summary value default/]]};
-        [200, "OK", $res, {result_format_options=>{
-            text          => $rfo,
-            "text-pretty" => $rfo,
-        }}];
+        [200, "OK", $res, {format_options=>{any=>$rfo}}];
     }
 }
 
