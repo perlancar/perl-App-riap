@@ -326,7 +326,4 @@ Command history file.
 
 =head2 C<~/.riaprc>
 
-Settings file. Each line is either a blank line, a comment (C<# ...>), or C<<
-<name>=<value-in-json> >>. An invalid line (e.g. unknown settings, invalid JSON
-syntax) will cause shell to abort when loading.
-
+Settings file (L<IOD> format).

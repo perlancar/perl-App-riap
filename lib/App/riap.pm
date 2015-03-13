@@ -294,6 +294,8 @@ sub state {
 }
 
 sub load_settings {
+    require Config::IOD::Reader;
+
     my $self = shift;
 
     my $filename = $self->settings_filename;
@@ -303,20 +305,11 @@ sub load_settings {
         last unless $filename;
         last unless (-e $filename);
         $log->tracef("Loading settings from %s ...", $filename);
-        open(my $fh, '<', $filename)
-            or die "Can't open settings file $filename: $!\n";
-        my $lineno = 0;
-        while (<$fh>) {
-            $lineno++;
-            next unless /\S/;
-            next if /^#/;
-            my ($n, $v) = /(.+?)\s*=\s*(.+)/
-                or die "$filename:$lineno: Invalid syntax in settings file\n";
-            eval { $v = $self->json_decode($v) };
-            $@ and die "$filename:$lineno: Invalid JSON in setting value: $@\n";
-            $self->setting($n, $v);
+        my $res = Config::IOD::Reader->new->read_file($filename);
+        last unless $res->{GLOBAL};
+        for (sort keys %{$res->{GLOBAL}}) {
+            $self->setting($_, $res->{GLOBAL}{$_});
         }
-        close $fh;
     }
 }
 
