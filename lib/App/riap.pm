@@ -622,7 +622,7 @@ sub catch_comp {
     my $meta = $res->[2];
 
     my ($words, $cword) = @{ Complete::Bash::parse_cmdline(
-        $line, $start+length($word), '=') };
+        $line, $start+length($word)) };
     shift @$words; $cword--; # strip program name
     $opts = {};
     $res = Perinci::Sub::Complete::complete_cli_arg(
