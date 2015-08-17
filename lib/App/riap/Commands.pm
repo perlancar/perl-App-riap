@@ -6,7 +6,7 @@ package App::riap::Commands;
 use 5.010;
 use strict;
 use warnings;
-use Log::Any '$log';
+use Log::Any::IfLOG '$log';
 
 use Path::Naive qw(is_abs_path normalize_path concat_path_n);
 #use Perinci::Sub::Util qw(err);

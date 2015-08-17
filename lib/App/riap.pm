@@ -8,7 +8,7 @@ use strict;
 use utf8;
 use warnings;
 #use experimental 'smartmatch';
-use Log::Any '$log';
+use Log::Any::IfLOG '$log';
 
 use parent qw(Term::Shell);
 
