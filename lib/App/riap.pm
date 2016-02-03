@@ -622,7 +622,9 @@ sub catch_comp {
     my $meta = $res->[2];
 
     my ($words, $cword) = @{ Complete::Bash::parse_cmdline(
-        $line, $start+length($word)) };
+        $line, $start+length($word), {truncate_current_word=>1}) };
+    ($words, $cword) = @{ Complete::Bash::join_wordbreak_words(
+        $words, $cword) };
     shift @$words; $cword--; # strip program name
     $opts = {};
     $res = Perinci::Sub::Complete::complete_cli_arg(
@@ -688,7 +690,9 @@ sub _install_cmds {
             my ($word, $line, $start) = @_;
             local $self->{_in_completion} = 1;
             my ($words, $cword) = @{ Complete::Bash::parse_cmdline(
-                $line, $start+length($word), '=') };
+                $line, $start+length($word), {truncate_current_word=>1}) };
+            ($words, $cword) = @{ Complete::Bash::join_wordbreak_words(
+                $words, $cword) };
             shift @$words; $cword--; # strip program name
             $opts = {};
             my $res = Perinci::Sub::Complete::complete_cli_arg(
