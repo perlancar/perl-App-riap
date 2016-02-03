@@ -169,7 +169,6 @@ sub ls {
 
             };
             $resmeta = {
-                "format_options" => {any=>{table_column_orders => [$ff]}},
                 "table.fields"   => $ff,
             },
         } else {
@@ -320,8 +319,7 @@ sub set {
                 default => $shell->known_settings->{$_}{schema}[1]{default},
             };
         }
-        my $rfo = {table_column_orders=>[[qw/name summary value default/]]};
-        [200, "OK", $res, {format_options=>{any=>$rfo}}];
+        [200, "OK", $res, {'table.fields' => [qw/name summary value default/]}];
     }
 }
 
