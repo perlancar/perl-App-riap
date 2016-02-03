@@ -1,5 +1,12 @@
 Revision history for App-Riap
 
+0.34    2016-02-03 (PERLANCAR)
+
+	- Adjust to Complete::Bash 0.27.
+
+	- Bump prereq version Log::Any::IfLOG to 0.07.
+
+
 0.33    2015-09-03 (PERLANCAR)
 
 	- No functional changes.
