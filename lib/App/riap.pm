@@ -181,8 +181,8 @@ sub colorize {
 sub _json_obj {
     state $json;
     if (!$json) {
-        require JSON;
-        $json = JSON->new->allow_nonref;
+        require JSON::MaybeXS;
+        $json = JSON::MaybeXS->new->allow_nonref;
     }
     $json;
 }
