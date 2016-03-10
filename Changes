@@ -1,5 +1,10 @@
 Revision history for App-Riap
 
+0.35    2016-03-10 (PERLANCAR)
+
+	- Replace JSON with JSON::MaybeXS.
+
+
 0.34    2016-02-03 (PERLANCAR)
 
 	- Adjust to Complete::Bash 0.27.
