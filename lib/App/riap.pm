@@ -741,4 +741,6 @@ This is the backend/implementation of the C<riap> script.
 
 L<Perinci::Access>
 
+L<peri-access>
+
 =cut
