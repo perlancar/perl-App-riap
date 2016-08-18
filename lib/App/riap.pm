@@ -548,7 +548,7 @@ sub comp_ {
             array=>\@res, word=>$word0),
     });
     if ($self->setting("debug_completion")) {
-        say "DEBUG: Completion: ".join(", ", @$comp);
+        say "DEBUG: Completion (1): ".join(", ", @$comp);
     }
     @$comp;
 }
@@ -701,6 +701,14 @@ sub _install_cmds {
                 extras => {-shell => $self},
             );
             $res = _hashify_compres($res);
+
+            # [ux] for cd, we want the convenience of directly completing single
+            # directory name without offering the choice of '--help', '-h',
+            # '../' etc unless the word contains that word
+            if ($cmd eq 'cd' && $words->[$cword] !~ /^[.-]/) {
+                $res->{words} = [ grep { !/^[.-]/ } @{ $res->{words} } ];
+            }
+
             my $comp = Complete::Bash::format_completion({
                 path_sep => '/',
                 as       => 'array',
@@ -709,7 +717,7 @@ sub _install_cmds {
                     array=>$res->{words}, word=>$word),
             });
             if ($self->setting('debug_completion')) {
-                say "DEBUG: Completion: ".join(", ", @$comp);
+                say "DEBUG: Completion (2): ".join(", ", @$comp);
             }
             @$comp;
         };
