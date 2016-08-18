@@ -1,5 +1,12 @@
 Revision history for App-Riap
 
+0.36    2016-08-18 (PERLANCAR)
+
+	- [ux] More convenient completion for 'cd' command.
+
+	- [doc] Mention peri-access script.
+
+
 0.35    2016-03-10 (PERLANCAR)
 
 	- Replace JSON with JSON::MaybeXS.
