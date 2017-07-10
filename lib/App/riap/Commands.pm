@@ -6,7 +6,7 @@ package App::riap::Commands;
 use 5.010;
 use strict;
 use warnings;
-use Log::Any::IfLOG '$log';
+use Log::ger;
 
 use Path::Naive qw(is_abs_path normalize_path concat_path_n);
 #use Perinci::Sub::Util qw(err);
@@ -249,7 +249,7 @@ sub cd {
     #return [403, "Not a directory (package)"]
     #    unless $res->[2]{type} eq 'package';
 
-    $log->tracef("Setting npwd=%s, opwd=%s", $npwd, $opwd);
+    log_trace("Setting npwd=%s, opwd=%s", $npwd, $opwd);
     $shell->state(pwd     => $npwd);
     $shell->state(old_pwd => $opwd);
     [200, "OK"];
