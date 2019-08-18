@@ -13,13 +13,13 @@ use Log::ger;
 use parent qw(Term::Shell);
 
 use Color::ANSI::Util qw(ansifg);
-use Data::Clean::JSON;
+use Data::Clean::ForJSON;
 use Path::Naive qw(concat_path_n);
 use Perinci::Sub::Util qw(err);
 use Term::Detect::Software qw(detect_terminal_cached);
 use Time::HiRes qw(time);
 
-my $cleanser = Data::Clean::JSON->get_cleanser;
+my $cleanser = Data::Clean::ForJSON->get_cleanser;
 
 sub new {
     require CHI;
