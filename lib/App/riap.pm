@@ -81,7 +81,9 @@ EOT
     $self->{_cache} = CHI->new(driver=>'Memory', global=>1);
 
     # determine color support
-    $self->{use_color} //= $ENV{COLOR} //
+    $self->{use_color} //=
+        (defined $ENV{NO_COLOR} ? 0 : undef) //
+        $ENV{COLOR} //
         detect_terminal_cached()->{color};
 
     # override some settings from cmdline args, if defined
@@ -743,6 +745,13 @@ Use the provided L<riap> script.
 =head1 DESCRIPTION
 
 This is the backend/implementation of the C<riap> script.
+
+
+=head1 ENVIRONMENT
+
+=head2 COLOR
+
+=head2 NO_COLOR
 
 
 =head1 SEE ALSO
