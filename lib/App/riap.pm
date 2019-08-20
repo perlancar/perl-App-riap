@@ -29,7 +29,7 @@ sub new {
 
     my ($class, %args) = @_;
 
-    binmode(STDOUT, ":utf8");
+    binmode(STDOUT, ":encoding(utf8)");
 
     my %opts;
     my @gospec = (

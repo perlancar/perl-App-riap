@@ -170,7 +170,7 @@ sub ls {
             };
             $resmeta = {
                 "table.fields"   => $ff,
-            },
+            };
         } else {
             $res = $shell->riap_request(list => $uri);
             return $res unless $res->[0] == 200;
