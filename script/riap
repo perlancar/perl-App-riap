@@ -76,11 +76,11 @@ An example session:
 
 =head1 DESCRIPTION
 
-A Riap client in the form of a simple interactive command-line shell (as opposed
-to L<Perinci::Access> which is a Perl library, or L<peri-run> and L<peri-access>
-which are non-interactive command-line interface). Provides a convenient way to
-explore API services which use the L<Riap> protocol or explore Perl modules
-which have L<Rinci> metadata.
+C<riap> is a L<Riap> client in the form of a simple interactive command-line
+shell (as opposed to L<Perinci::Access> which is a Perl library, or L<peri-run>
+and L<peri-access> which are non-interactive command-line interfaces). This
+C<riap> shell provides a convenient way to explore API services which use the
+Riap protocol or explore Perl modules which have L<Rinci> metadata.
 
 Example API services that you can (or will be able to) test this with:
 
