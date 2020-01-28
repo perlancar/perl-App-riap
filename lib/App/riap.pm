@@ -545,7 +545,6 @@ sub comp_ {
     my $comp = Complete::Bash::format_completion({
         path_sep => '/',
         as       => 'array',
-        esc_mode => 'default',
         words    => Complete::Util::complete_array_elem(
             array=>\@res, word=>$word0),
     });
@@ -641,7 +640,6 @@ sub catch_comp {
     @{ Complete::Bash::format_completion({
         path_sep => '/',
         as       => 'array',
-        esc_mode => 'default',
         words    => Complete::Util::complete_array_elem(
             array=>$res->{words}, word=>$word),
     })};
@@ -714,7 +712,6 @@ sub _install_cmds {
             my $comp = Complete::Bash::format_completion({
                 path_sep => '/',
                 as       => 'array',
-                esc_mode => 'default',
                 words    => Complete::Util::complete_array_elem(
                     array=>$res->{words}, word=>$word),
             });
