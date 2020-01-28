@@ -542,12 +542,14 @@ sub comp_ {
     }
     #use Data::Dump; dd \@res;
 
-    my $comp = Complete::Bash::format_completion({
-        path_sep => '/',
-        as       => 'array',
-        words    => Complete::Util::complete_array_elem(
-            array=>\@res, word=>$word0),
-    });
+    my $comp = Complete::Bash::format_completion(
+        {
+            path_sep => '/',
+            words    => Complete::Util::complete_array_elem(
+                array=>\@res, word=>$word0),
+        },
+        {as => 'array'},
+    );
     if ($self->setting("debug_completion")) {
         say "DEBUG: Completion (1): ".join(", ", @$comp);
     }
@@ -637,12 +639,14 @@ sub catch_comp {
         riap_client     => $self->{_pa},
     );
     $res = _hashify_compres($res);
-    @{ Complete::Bash::format_completion({
-        path_sep => '/',
-        as       => 'array',
-        words    => Complete::Util::complete_array_elem(
-            array=>$res->{words}, word=>$word),
-    })};
+    @{ Complete::Bash::format_completion(
+        {
+            path_sep => '/',
+            words    => Complete::Util::complete_array_elem(
+                array=>$res->{words}, word=>$word),
+        },
+        {as => 'array'},
+    ) };
 }
 
 sub _hashify_compres {
@@ -709,12 +713,14 @@ sub _install_cmds {
                 $res->{words} = [ grep { !/^[.-]/ } @{ $res->{words} } ];
             }
 
-            my $comp = Complete::Bash::format_completion({
-                path_sep => '/',
-                as       => 'array',
-                words    => Complete::Util::complete_array_elem(
-                    array=>$res->{words}, word=>$word),
-            });
+            my $comp = Complete::Bash::format_completion(
+                {
+                    path_sep => '/',
+                    words    => Complete::Util::complete_array_elem(
+                        array=>$res->{words}, word=>$word),
+                },
+                {as => 'array'},
+            );
             if ($self->setting('debug_completion')) {
                 say "DEBUG: Completion (2): ".join(", ", @$comp);
             }
