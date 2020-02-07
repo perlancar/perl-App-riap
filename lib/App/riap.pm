@@ -1,6 +1,8 @@
 package App::riap;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use 5.010001;
@@ -14,7 +16,7 @@ use parent qw(Term::Shell);
 
 use Color::ANSI::Util qw(ansifg);
 use Data::Clean::ForJSON;
-use Path::Naive qw(concat_path_n);
+use Path::Naive qw(concat_and_normalize_path);
 use Perinci::Sub::Util qw(err);
 use Term::Detect::Software qw(detect_terminal_cached);
 use Time::HiRes qw(time);
@@ -540,7 +542,7 @@ sub comp_ {
     my ($dir, $word) = $word0 =~ m!(.*/)?(.*)!;
     $dir //= "";
     my $pwd = $self->state("pwd");
-    my $uri = length($dir) ? concat_path_n($pwd, $dir) : $pwd;
+    my $uri = length($dir) ? concat_and_normalize_path($pwd, $dir) : $pwd;
     $uri .= "/" unless $uri =~ m!/\z!;
     my $extra = {detail=>1};
     my $res = $self->riap_request(list => $uri, $extra);
@@ -581,7 +583,7 @@ sub catch_run {
     my ($cmd, @argv) = @_;
 
     my $pwd = $self->state("pwd");
-    my $uri = concat_path_n($pwd, $cmd);
+    my $uri = concat_and_normalize_path($pwd, $cmd);
     my $res = $self->riap_request(info => $uri);
     if ($res->[0] == 404) {
         $self->_err([404, "No such command or executable (Riap function)"]);
@@ -627,7 +629,7 @@ sub catch_comp {
     local $self->{_in_completion} = 1;
 
     my $pwd = $self->state("pwd");
-    my $uri = concat_path_n($pwd, $cmd);
+    my $uri = concat_and_normalize_path($pwd, $cmd);
     my $res = $self->riap_request(info => $uri);
     return () unless $res->[0] == 200;
     return () unless $res->[2]{type} eq 'function';
