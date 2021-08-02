@@ -2,3 +2,4 @@ App-riap-*
 .build
 *~
 nytprof*
+.DS_Store
